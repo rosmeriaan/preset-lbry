@@ -1,0 +1,6 @@
+{
+  "name": "Preset Library",
+  "description": "Preset Library & Creator Community platform for sharing and exploring presets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

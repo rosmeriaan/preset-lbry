@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes" />
+    <meta name="theme-color" content="#f2f0ea" />
+    <title>Preset Library — Komunitas Kreator</title>
+
+    <!-- Google AdSense -->
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7577857454065210"
+     crossorigin="anonymous"></script>
+
+    <!-- Favicon & App Icons (SVG) -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="shortcut icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="apple-touch-icon" href="favicon.svg" />
+    <meta property="og:image" content="favicon.svg" />
+    <meta property="og:title" content="Preset Library — Komunitas Kreator" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:image" content="favicon.svg" />
+
+    <!-- Circular-safe JSON stringify polyfill/interceptor to prevent sandbox iframe serialization crashes -->
+    <script>
+        (function() {
+            var nativeStringify = JSON.stringify;
+            JSON.stringify = function(value, replacer, space) {
+                var seen = new WeakSet();
+                function safeReplacer(key, val) {
+                    if (typeof val === 'object' && val !== null) {
+                        if (val instanceof Node || (val.nodeType && typeof val.nodeName === 'string')) {
+                            return '[DOM ' + (val.nodeName || 'Element') + ']';
+                        }
+                        if (seen.has(val)) {
+                            return '[Circular]';
+                        }
+                        seen.add(val);
+                    }
+                    if (typeof replacer === 'function') {
+                        return replacer.call(this, key, val);
+                    }
+                    return val;
+                }
+                try {
+                    return nativeStringify(value, typeof replacer === 'function' ? safeReplacer : (Array.isArray(replacer) ? replacer : safeReplacer), space);
+                } catch (e) {
+                    try {
+                        return nativeStringify(value, safeReplacer, space);
+                    } catch (e2) {
+                        return '"[Circular/Unserializable]"';
+                    }
+                }
+            };
+        })();
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.cdnfonts.com/css/alte-haas-grotesk" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+
+    <!-- Firebase Compat SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js" crossorigin="anonymous"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- HEADER -->
+        <header class="site-header" id="siteHeader">
+            <div class="header-inner">
+                <div class="header-left">
+                    <a href="#/home" class="logo" id="logoLink">
+                        <img src="favicon.svg" alt="Logo" class="logo-icon" id="logoIcon" style="width:22px;height:22px;border-radius:6px;object-fit:contain;display:inline-block;" />
+                        <span id="logoText">Preset Library</span>
+                    </a>
+                </div>
+
+                <div class="header-right">
+                    <!-- DESKTOP NAV -->
+                    <nav class="main-nav" id="mainNav">
+                        <button class="active" data-view="explore">Beranda</button>
+                        <button data-view="cari">Cari</button>
+                        <button data-view="creators">Kreator</button>
+                    </nav>
+
+                    <div class="user-badge" id="userBadge" style="display:none;" title="Lihat Profil">
+                        <div id="userAvatarWrap"></div>
+                        <span id="userName" class="user-name"></span>
+                    </div>
+
+                    <div class="notif-wrap" id="notifWrap" style="display:none;position:relative;cursor:pointer;" title="Notifikasi">
+                        <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" fill="none" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <span class="notif-count-badge" id="notifCount" style="display:none;">0</span>
+                    </div>
+
+                    <button type="button" class="btn btn-secondary btn-header-login" id="loginBtn" title="Masuk Akun" style="display:inline-flex;">
+                        <span>Masuk</span>
+                    </button>
+
+                    <button type="button" class="search-btn-topright" id="headerSearchToggle" title="Cari Preset" aria-label="Cari Preset">
+                        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2.2"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>
+                    </button>
+
+                    <button type="button" class="profile-menu-btn" id="profileMenuToggle" title="Opsi Akun" aria-label="Opsi Akun" style="display:none;">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
+                    </button>
+
+                    <div class="profile-menu-dropdown" id="profileMenuDropdown">
+                        <button type="button" class="menu-item" id="menuAdminBtn" style="display:none;color:#f59e0b;font-weight:600;">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Admin Moderasi</span>
+                        </button>
+                        <button type="button" class="menu-item" id="menuTentangBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                            <span>Tentang Platform</span>
+                        </button>
+                        <button type="button" class="menu-item danger" id="menuLogoutBtn">
+                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                            <span id="menuLogoutText">Keluar Akun</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FULL WIDTH SEARCH OVERLAY -->
+            <div class="header-search-overlay" id="headerSearchOverlay">
+                <div class="search-overlay-inner">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>
+                    <input type="text" id="searchInput" placeholder="Cari preset, template, atau @kreator..." autocomplete="off" />
+                    <button type="button" class="clear-search-btn" id="clearDesktopSearch" style="display:none;" aria-label="Hapus pencarian">
+                        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" fill="none" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                    <button type="button" class="close-search-overlay-btn" id="closeSearchOverlayBtn" title="Tutup pencarian" aria-label="Tutup pencarian">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="search-recent-panel" id="searchRecentPanel"></div>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <main class="main">
+            <div id="cardGrid">
+                <div class="grid is-loading is-skeleton" aria-busy="true" aria-label="Memuat data...">
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:16/9;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:85%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:45%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:9/16;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:92%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:55%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:16/9;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:78%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:40%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:1/1;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:88%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:60%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:9/16;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:95%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:48%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                    <article class="card is-skeleton" aria-hidden="true">
+                        <div class="thumb skel" style="aspect-ratio:4/5;"><span class="ratio-tag skel" style="width:30px;height:14px;border:none;"></span></div>
+                        <div class="card-info">
+                            <div class="skel-line skel" style="width:70%;height:13px;margin-bottom:6px;border-radius:4px;"></div>
+                            <div class="skel-creator"><div class="skel-avatar skel"></div><div class="skel-line skel" style="width:52%;height:10px;margin-top:0;border-radius:3px;"></div></div>
+                            <div class="skel-foot"><div class="skel-line skel" style="width:38px;height:12px;margin-top:0;border-radius:3px;"></div><div class="skel-stats"><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div><div class="skel-line skel" style="width:24px;height:10px;margin-top:0;border-radius:3px;"></div></div></div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </main>
+
+        <!-- MOBILE NAV -->
+        <nav class="mobile-nav" id="mobileNav">
+            <button class="active" data-nav="explore">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M3 12l9-9 9 9"/><path d="M5 10v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10"/></svg>
+                <span>Beranda</span>
+            </button>
+            <button data-nav="cari">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><circle cx="11" cy="11" r="7.5"/><line x1="21" y1="21" x2="16.2" y2="16.2"/></svg>
+                <span>Cari</span>
+            </button>
+            <button class="nav-upload-mobile" data-nav="upload" aria-label="Upload Template">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </button>
+            <button data-nav="creators">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Kreator</span>
+            </button>
+            <button data-nav="profile">
+                <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Profile</span>
+            </button>
+        </nav>
+
+        <!-- LOGIN MODAL -->
+        <div class="modal-overlay modal-centered" id="loginModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2 id="loginModalTitle">Masuk</h2>
+                    <button class="modal-close" id="closeLoginModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div id="loginPromptMsg" style="background:var(--bg-alt,#f8fafc);padding:0.65rem 0.85rem;border-radius:10px;font-size:0.8rem;color:var(--text-secondary,#64748b);margin-bottom:0.8rem;display:none;border:1px solid var(--border-color,#e2e8f0);line-height:1.4;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M21 2l-2 2m-1.5 1.5l-3 3m-3.5 3.5a6 6 0 1 1-8.5 8.5 6 6 0 0 1 8.5-8.5z"/></svg> Yuk masuk atau daftar akun gratis dulu untuk menyukai preset &amp; berinteraksi!
+                </div>
+
+                <button type="button" class="btn-google-login" id="googleModalLoginBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                    <span>Masuk / Daftar dengan Google</span>
+                </button>
+                <div class="auth-divider"><span>atau dengan email</span></div>
+                <form id="loginForm">
+                    <div class="form-group"><label>Email</label><input type="email" id="loginEmail" required placeholder="email@example.com" /></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="loginPassword" required placeholder="Min 6 karakter" /></div>
+                    <div id="loginError" style="color:#a13d3d;font-size:0.78rem;margin-bottom:0.4rem;display:none;"></div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="loginSubmitBtn">Masuk</button>
+                        <button type="button" class="btn btn-secondary" id="cancelLogin">Batal</button>
+                    </div>
+                    <div class="auth-toggle">
+                        Belum punya akun? <button type="button" id="switchToRegister">Daftar</button>
+                    </div>
+                </form>
+                <form id="registerAuthForm" style="display:none;">
+                    <div class="form-group"><label>Email</label><input type="email" id="registerEmail" required placeholder="email@example.com" /></div>
+                    <div class="form-group"><label>Password</label><input type="password" id="registerPassword" required placeholder="Min 6 karakter" minlength="6" /></div>
+                    <div id="registerError" style="color:#a13d3d;font-size:0.78rem;margin-bottom:0.4rem;display:none;"></div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="registerSubmitBtn">Daftar</button>
+                        <button type="button" class="btn btn-secondary" id="cancelRegisterAuth">Batal</button>
+                    </div>
+                    <div class="auth-toggle">
+                        Sudah punya akun? <button type="button" id="switchToLogin">Masuk</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- UPLOAD MODAL -->
+        <div class="modal-overlay" id="uploadModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2 id="modalTitle">Upload Template</h2>
+                    <button class="modal-close" id="closeUploadModal" aria-label="Tutup"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <form id="uploadForm">
+                    <div class="form-section-card">
+                        <div class="section-card-title">
+                            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>Informasi Template</span>
+                        </div>
+                        <div class="form-group"><label>Judul Preset *</label><input type="text" id="fJudul" required placeholder="Misal: Jedag Jedug Viral AM 2026" /></div>
+                        <div class="form-group">
+                            <label>Kode Preset * <span class="form-hint" style="display:inline;font-weight:400;">(bisa custom/acak, huruf besar-kecil &amp; angka, maks. 10 karakter)</span></label>
+                            <div class="input-with-btn">
+                                <input type="text" id="fKode" class="mono" maxlength="10" placeholder="a1B2c3" required style="letter-spacing:0.5px; font-weight:600;" />
+                                <button type="button" class="btn-random-code" id="fRandomKodeBtn" title="Buat kode acak"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2"/><circle cx="15.5" cy="15.5" r="1.2"/><circle cx="15.5" cy="8.5" r="1.2"/><circle cx="8.5" cy="15.5" r="1.2"/><circle cx="12" cy="12" r="1.2"/></svg>Acak</button>
+                            </div>
+                        </div>
+                        <div class="form-row2">
+                            <div class="form-group"><label>Kategori *</label>
+                                <select id="fKategori" required><option value="">Pilih kategori</option><option value="Preset">Preset</option><option value="Assets">Assets</option><option value="Lainnya">Lainnya</option></select>
+                            </div>
+                            <div class="form-group"><label>Aspect Ratio *</label>
+                                <select id="fAspect" required>
+                                    <option value="">Pilih rasio</option>
+                                    <option value="9:16">9:16 &mdash; Vertical (TikTok/Reels)</option>
+                                    <option value="16:9">16:9 &mdash; Landscape (YouTube)</option>
+                                    <option value="1:1">1:1 &mdash; Square</option>
+                                    <option value="4:3">4:3</option>
+                                    <option value="3:4">3:4</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group" id="customCategoryGroup" style="display:none;">
+                            <label>Nama Kategori Lainnya *</label><input type="text" id="fCustomKategori" placeholder="Tulis kategori..." />
+                        </div>
+                        <div class="form-group"><label>Style</label>
+                            <select id="fStyle">
+                                <option value="">Pilih Style (Opsional)</option>
+                                <option value="JJ (Jedag-Jedug)">JJ (Jedag-Jedug)</option>
+                                <option value="Motion Graphic">Motion Graphic</option>
+                                <option value="Cinematic">Cinematic</option>
+                                <option value="Vlog">Vlog</option>
+                                <option value="Lainnya">Lainnya (Tulis sendiri)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="fStyleCustomGroup" style="display:none; margin-top:0.4rem;">
+                            <label>Nama Style Custom</label>
+                            <input type="text" id="fCustomStyle" placeholder="Tulis style (misal: Typography, Anime, 3D)..." />
+                        </div>
+                        <div class="form-group"><label>Deskripsi (Opsional)</label><textarea id="fDeskripsi" rows="2" placeholder="Ceritakan tentang karya atau cara pakainya..."></textarea></div>
+                    </div>
+
+                    <div class="form-section-card">
+                        <div class="section-card-title">
+                            <svg viewBox="0 0 24 24"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                            <span>Preview Video</span>
+                        </div>
+                        <div class="form-group"><label>YouTube URL</label><input type="url" id="fLinkYoutube" placeholder="https://youtube.com/watch?v=... atau https://youtu.be/..." /></div>
+                    </div>
+
+                    <div class="form-section-card">
+                        <div class="section-card-title">
+                            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="18" x2="12" y2="6"/></svg>
+                            <span>Akses &amp; Lisensi</span>
+                        </div>
+                        <div class="form-group"><label>Tipe Akses *</label>
+                            <select id="fLicense" required><option value="free">Gratis</option><option value="paid">Berbayar</option></select>
+                        </div>
+                        <div class="price-wrap" id="priceWrapper">
+                            <div class="form-group"><label>Harga (Rp)</label><input type="number" id="fHarga" placeholder="10000" min="1000" step="1000" /></div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-card" id="fileLinksSection">
+                        <div class="section-card-title">
+                            <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <span>File &amp; Tautan Unduh <span style="font-weight:400;text-transform:none;color:var(--text-muted);font-size:0.75rem;">(Gratis)</span></span>
+                        </div>
+                        <div class="form-group"><label>Link Project (XML / 5MB / JSON)</label><input type="url" id="fLinkProject" placeholder="https://..." /></div>
+                        <div class="form-group"><label>Link Google Drive / Cloud</label><input type="url" id="fLinkDrive" placeholder="https://drive.google.com/..." /></div>
+                        <div class="form-row2">
+                            <div class="form-group"><label>Link Asset 1</label><input type="url" id="fLinkAsset1" placeholder="https://..." /></div>
+                            <div class="form-group"><label>Link Asset 2</label><input type="url" id="fLinkAsset2" placeholder="https://..." /></div>
+                        </div>
+                        <div class="form-hint" id="fileLinksHint">Untuk template <strong>gratis</strong>, sertakan link download atau project. Untuk template <strong>berbayar</strong>, link tidak akan ditampilkan.</div>
+                    </div>
+
+                    <div class="form-actions" style="margin-top:1rem;">
+                        <button type="submit" class="btn btn-primary" id="fSubmitBtn">Publikasikan Preset</button>
+                        <button type="button" class="btn btn-secondary" id="resetBtn">Reset</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 3-SLIDE CENTERED DETAIL MODAL -->
+        <div class="modal-overlay modal-centered" id="detailModal">
+            <div class="modal-sheet modal-detail-sheet">
+                <div class="sheet-handle"></div>
+                <div id="detailContent"></div>
+            </div>
+        </div>
+
+        <!-- REGISTER CREATOR MODAL -->
+        <div class="modal-overlay modal-centered" id="registerCreatorModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Daftar sebagai Kreator</h2>
+                    <button class="modal-close" id="closeRegisterModal" aria-label="Tutup"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+
+                <div class="multistep-progress" id="modalStepProgress">
+                    <div class="step-pill active" data-step="1">
+                        <span class="step-num">1</span>
+                        <span class="step-label">Profil</span>
+                    </div>
+                    <div class="step-divider">&rarr;</div>
+                    <div class="step-pill" data-step="2">
+                        <span class="step-num">2</span>
+                        <span class="step-label">Kontak</span>
+                    </div>
+                    <div class="step-divider">&rarr;</div>
+                    <div class="step-pill" data-step="3">
+                        <span class="step-num">3</span>
+                        <span class="step-label">Portfolio</span>
+                    </div>
+                    <div class="step-divider">&rarr;</div>
+                    <div class="step-pill" data-step="4">
+                        <span class="step-num">4</span>
+                        <span class="step-label">Konfirmasi</span>
+                    </div>
+                </div>
+
+                <form id="registerCreatorForm">
+                    <div class="multistep-viewport">
+                        <div class="multistep-track" id="modalStepTrack">
+                            <!-- STEP 1: PROFIL -->
+                            <div class="multistep-slide" data-slide="1">
+                                <div class="form-section-card">
+                                    <div class="section-card-title">
+                                        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <span>Identitas &amp; Visual Kreator</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Username * (unik, untuk tautan profil)</label>
+                                        <input type="text" id="rUsername" required placeholder="contoh: imctfy" pattern="[a-zA-Z0-9_]{3,20}" />
+                                        <div class="username-hint" id="usernameHint">Min 3 karakter, hanya huruf/angka/garis bawah.</div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Nama Tampilan *</label>
+                                        <input type="text" id="rDisplayName" required placeholder="Nama yang akan dilihat publik" />
+                                    </div>
+                                    <div class="form-group"><label>Bio Singkat</label><textarea id="rBio" rows="2" placeholder="Sedikit tentang kamu dan ciri khas editingmu..."></textarea></div>
+
+                                    <div id="rAvatarPickerContainer"></div>
+
+                                    <div class="form-group" style="margin-top:0.75rem;"><label>Software yang Digunakan * <span style="font-size:0.72rem;font-weight:normal;color:var(--text-muted);">(Bisa pilih lebih dari 1)</span></label>
+                                        <div class="software-checkbox-grid" id="rSoftwareGroup">
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Alight Motion"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Alight Motion</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="CapCut"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">CapCut</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Node Video"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Node Video</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Premiere Pro"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Premiere Pro</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="After Effects"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">After Effects</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="DaVinci Resolve"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">DaVinci Resolve</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="KineMaster"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">KineMaster</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Canva"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Canva</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Photoshop / Illustrator"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Photoshop / Illustrator</span></label>
+                                            <label class="software-chip"><input type="checkbox" name="rSoftwareOption" value="Lainnya"><span class="chip-check"><svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span class="chip-label">Lainnya</span></label>
+                                        </div>
+                                        <input type="text" id="rSoftwareCustom" class="form-control" placeholder="Tulis software lainnya (pisahkan koma)..." style="display:none;margin-top:0.5rem;" />
+                                    </div>
+                                </div>
+                                <div class="multistep-actions">
+                                    <button type="button" class="btn btn-primary btn-next-step" style="width:100%;">Lanjut &rarr;</button>
+                                </div>
+                            </div>
+
+                            <!-- STEP 2: KONTAK -->
+                            <div class="multistep-slide" data-slide="2">
+                                <div class="form-section-card">
+                                    <div class="section-card-title">
+                                        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                        <span>Informasi Kontak</span>
+                                    </div>
+                                    <div class="form-group"><label>No. WhatsApp (opsional)</label><input type="text" id="rWa" placeholder="628xxxxxxxx" /></div>
+                                    <div class="form-group"><label>Email Kontak (opsional)</label><input type="email" id="rEmail" placeholder="kreator@email.com" /></div>
+                                </div>
+                                <div class="multistep-actions form-actions">
+                                    <button type="button" class="btn btn-secondary btn-prev-step">&larr; Kembali</button>
+                                    <button type="button" class="btn btn-primary btn-next-step">Lanjut &rarr;</button>
+                                </div>
+                            </div>
+
+                            <!-- STEP 3: PORTFOLIO -->
+                            <div class="multistep-slide" data-slide="3">
+                                <div class="form-section-card">
+                                    <div class="section-card-title">
+                                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+                                        <span>Tautan Portofolio &amp; Media</span>
+                                    </div>
+                                    <div class="form-group"><label>Portfolio / Channel / Instagram (opsional)</label><input type="url" id="rPortfolio" placeholder="https://..." /></div>
+                                </div>
+                                <div class="multistep-actions form-actions">
+                                    <button type="button" class="btn btn-secondary btn-prev-step">&larr; Kembali</button>
+                                    <button type="button" class="btn btn-primary btn-next-step">Lanjut &rarr;</button>
+                                </div>
+                            </div>
+
+                            <!-- STEP 4: KONFIRMASI -->
+                            <div class="multistep-slide" data-slide="4">
+                                <div class="form-section-card">
+                                    <div class="section-card-title">
+                                        <svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                                        <span>Tinjauan Data Kreator</span>
+                                    </div>
+                                    <div class="summary-card">
+                                        <div class="summary-item">
+                                            <span class="summary-label">Username</span>
+                                            <span class="summary-val mono" id="rSumUsername">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Nama Tampilan</span>
+                                            <span class="summary-val" id="rSumDisplayName">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Bio</span>
+                                            <span class="summary-val" id="rSumBio">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Software</span>
+                                            <span class="summary-val" id="rSumSoftware">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">No. WhatsApp</span>
+                                            <span class="summary-val" id="rSumWa">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Email Kontak</span>
+                                            <span class="summary-val" id="rSumEmail">—</span>
+                                        </div>
+                                        <div class="summary-item">
+                                            <span class="summary-label">Portfolio</span>
+                                            <span class="summary-val" id="rSumPortfolio">—</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="multistep-actions form-actions">
+                                    <button type="button" class="btn btn-secondary btn-prev-step">&larr; Kembali</button>
+                                    <button type="submit" class="btn btn-primary" id="registerSubmitBtn" style="flex:1;">Daftar sebagai Kreator</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- AKUN MODAL (Profile) -->
+        <div class="modal-overlay" id="akunModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Edit Profil Saya</h2>
+                    <button class="modal-close" id="closeAkunModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div id="akunTabContent"></div>
+            </div>
+        </div>
+
+        <!-- EDIT TEMPLATE MODAL -->
+        <div class="modal-overlay" id="editTemplateModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Edit Template</h2>
+                    <button class="modal-close" id="closeEditTemplateModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <form id="editTemplateForm">
+                    <div class="form-section">
+                        <div class="section-label">Info Dasar</div>
+                        <div class="form-group"><label>Judul *</label><input type="text" id="eTJudul" required /></div>
+                        <div class="form-group">
+                            <label>Kode Preset * <span class="form-hint" style="display:inline;font-weight:400;">(bisa custom/acak, huruf besar-kecil &amp; angka, maks. 10 karakter)</span></label>
+                            <div class="input-with-btn">
+                                <input type="text" id="eTKode" class="mono" maxlength="10" placeholder="a1B2c3" required style="letter-spacing:0.5px; font-weight:600;" />
+                                <button type="button" class="btn-random-code" id="eTRandomKodeBtn" title="Buat kode acak"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;margin-right:2px;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2"/><circle cx="15.5" cy="15.5" r="1.2"/><circle cx="15.5" cy="8.5" r="1.2"/><circle cx="8.5" cy="15.5" r="1.2"/><circle cx="12" cy="12" r="1.2"/></svg>Acak</button>
+                            </div>
+                        </div>
+                        <div class="form-group"><label>Kategori *</label>
+                            <select id="eTKategori" required><option value="Preset">Preset</option><option value="Assets">Assets</option><option value="Lainnya">Lainnya</option></select>
+                        </div>
+                        <div class="form-group" id="eTCustomCategoryGroup" style="display:none;">
+                            <label>Nama Kategori Lainnya *</label><input type="text" id="eTCustomKategori" placeholder="Tulis kategori..." />
+                        </div>
+                        <div class="form-group"><label>Style</label>
+                            <select id="eTStyle">
+                                <option value="">Pilih Style (Opsional)</option>
+                                <option value="JJ (Jedag-Jedug)">JJ (Jedag-Jedug)</option>
+                                <option value="Motion Graphic">Motion Graphic</option>
+                                <option value="Cinematic">Cinematic</option>
+                                <option value="Vlog">Vlog</option>
+                                <option value="Lainnya">Lainnya (Tulis sendiri)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="eTStyleCustomGroup" style="display:none; margin-top:0.4rem;">
+                            <label>Nama Style Custom</label>
+                            <input type="text" id="eTCustomStyle" placeholder="Tulis style..." />
+                        </div>
+                        <div class="form-group"><label>Deskripsi</label><textarea id="eTDeskripsi" rows="2" placeholder="Ceritakan tentang karya ini..."></textarea></div>
+                    </div>
+                    <div class="form-section">
+                        <div class="section-label">Preview</div>
+                        <div class="form-group"><label>YouTube URL</label><input type="url" id="eTLinkYoutube" placeholder="https://youtube.com/watch?v=..." /></div>
+                        <div class="form-group"><label>Aspect Ratio *</label>
+                            <select id="eTAspect" required>
+                                <option value="9:16">9:16 &mdash; Vertical</option>
+                                <option value="16:9">16:9 &mdash; Landscape</option>
+                                <option value="1:1">1:1 &mdash; Square</option>
+                                <option value="4:3">4:3</option>
+                                <option value="3:4">3:4</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <div class="section-label">Akses</div>
+                        <div class="form-group"><label>Tipe *</label>
+                            <select id="eTLicense" required><option value="free">Gratis</option><option value="paid">Berbayar</option></select>
+                        </div>
+                        <div class="price-wrap" id="eTPriceWrapper">
+                            <div class="form-group"><label>Harga (Rp)</label><input type="number" id="eTHarga" placeholder="10000" min="1000" step="1000" /></div>
+                        </div>
+                    </div>
+                    <div class="form-section" id="eTFileLinksSection">
+                        <div class="section-label">File &amp; Link <span style="font-weight:400;text-transform:none;font-family:var(--font);color:var(--text-muted);font-size:0.65rem;">(hanya untuk template gratis)</span></div>
+                        <div class="form-group"><label>Link Project</label><input type="url" id="eTLinkProject" placeholder="https://..." /></div>
+                        <div class="form-group"><label>Link Drive</label><input type="url" id="eTLinkDrive" placeholder="https://drive.google.com/..." /></div>
+                        <div class="form-row2">
+                            <div class="form-group"><label>Link Asset 1</label><input type="url" id="eTLinkAsset1" placeholder="https://..." /></div>
+                            <div class="form-group"><label>Link Asset 2</label><input type="url" id="eTLinkAsset2" placeholder="https://..." /></div>
+                        </div>
+                        <div class="form-hint" id="eTFileLinksHint">Untuk template <strong>gratis</strong>, sertakan link download atau project. Untuk template <strong>berbayar</strong>, link tidak akan ditampilkan.</div>
+                    </div>
+                    <input type="hidden" id="eTEditId" />
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+                        <button type="button" class="btn btn-secondary" id="cancelEditTemplate">Batal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- CHECKOUT MODAL -->
+        <div class="modal-overlay" id="checkoutModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div id="checkoutContent"></div>
+            </div>
+        </div>
+
+        <!-- INVOICE MODAL -->
+        <div class="modal-overlay" id="invoiceModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div id="invoiceContent"></div>
+            </div>
+        </div>
+
+        <!-- WITHDRAW MODAL -->
+        <div class="modal-overlay" id="withdrawModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div id="withdrawContent"></div>
+            </div>
+        </div>
+
+        <!-- NOTIFICATION MODAL -->
+        <div class="modal-overlay" id="notifModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div id="notifContent"></div>
+            </div>
+        </div>
+
+        <!-- REVIEW MODAL -->
+        <div class="modal-overlay" id="reviewModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Beri Ulasan Preset</h2>
+                    <button class="modal-close" id="closeReviewModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <form id="reviewForm">
+                    <input type="hidden" id="revTemplateId" />
+                    <div class="form-group" style="text-align:center;margin-bottom:1rem;">
+                        <label style="display:block;margin-bottom:0.5rem;">Rating Kamu</label>
+                        <div class="rating-stars" id="starPicker" style="font-size:1.8rem;cursor:pointer;">
+                            <span data-star="1">★</span>
+                            <span data-star="2">★</span>
+                            <span data-star="3">★</span>
+                            <span data-star="4">★</span>
+                            <span data-star="5">★</span>
+                        </div>
+                        <input type="hidden" id="revRating" value="5" />
+                    </div>
+                    <div class="form-group">
+                        <label>Ulasan / Komentar</label>
+                        <textarea id="revComment" rows="3" placeholder="Bagaimana pengalaman kamu menggunakan preset ini?" required></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Kirim Ulasan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- REPORT MODAL -->
+        <div class="modal-overlay" id="reportModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Laporkan Preset</h2>
+                    <button class="modal-close" id="closeReportModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <form id="reportForm">
+                    <input type="hidden" id="repTemplateId" />
+                    <div class="form-group">
+                        <label>Alasan Pelaporan *</label>
+                        <select id="repReason" required>
+                            <option value="">Pilih alasan</option>
+                            <option value="broken_link">Link Rusak / Tidak Bekerja</option>
+                            <option value="copyright">Klaim Hak Cipta / Karya Dicuri</option>
+                            <option value="misleading">Deskripsi Penipuan / Tidak Sesuai</option>
+                            <option value="inappropriate">Konten Tidak Layak</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Detail Tambahan</label>
+                        <textarea id="repDetails" rows="3" placeholder="Jelaskan masalah secara detail..."></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Kirim Laporan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ABOUT MODAL -->
+        <div class="modal-overlay" id="aboutModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Tentang Platform</h2>
+                    <button class="modal-close" id="closeAboutModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div style="padding: 1rem; line-height: 1.6; font-size: 0.88rem; color: var(--text-main);">
+                    <div style="text-align:center; margin-bottom:1.2rem;">
+                        <div style="font-size:1.4rem; font-weight:800; color:var(--accent);">Preset Library</div>
+                        <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:0.2rem;">Platform Komunitas Video Creator &amp; Editor</div>
+                    </div>
+                    <p style="margin-bottom:0.8rem;">
+                        <strong>Preset Library</strong> adalah platform tempat para video editor, animator, dan konten kreator membagikan serta menemukan preset, LUTs, proyek CapCut, Alight Motion, Premiere Pro, dan aset kreatif lainnya.
+                    </p>
+                    <div style="background:var(--bg-alt); padding:0.8rem; border-radius:10px; border:1px solid var(--border-color); margin-bottom:1rem;">
+                        <div style="font-weight:700; margin-bottom:0.3rem;">✨ Fitur Komunitas:</div>
+                        <ul style="margin:0; padding-left:1.2rem; font-size:0.83rem; color:var(--text-secondary);">
+                            <li>Jelajah &amp; unduh ribuan preset gratis &amp; premium.</li>
+                            <li>Daftar sebagai kreator &amp; publikasikan karya kamu.</li>
+                            <li>Sukai, beri ulasan, dan simpan preset favorit kamu.</li>
+                        </ul>
+                    </div>
+                    <p style="font-size:0.78rem; color:var(--text-secondary); text-align:center;">
+                        &copy; 2026 Preset Library. All rights reserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TERMS MODAL -->
+        <div class="modal-overlay" id="termsModal">
+            <div class="modal-sheet">
+                <div class="sheet-handle"></div>
+                <div class="modal-head">
+                    <h2>Kebijakan &amp; Keamanan Platform</h2>
+                    <button class="modal-close" id="closeTermsModal"><svg viewBox="0 0 24 24" width="17" height="17"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                </div>
+                <div style="font-size:0.85rem;line-height:1.6;color:var(--text-secondary);padding-top:0.5rem;">
+                    <h4 style="color:var(--text-main);margin-bottom:0.3rem;">1. Ketentuan Lisensi Preset</h4>
+                    <p style="margin-bottom:0.8rem;">Setiap preset yang dibeli atau diunduh dari Preset Library dapat digunakan untuk karya personal maupun komersial. Dilarang keras menjual ulang file mentah preset tanpa izin kreator.</p>
+                    <h4 style="color:var(--text-main);margin-bottom:0.3rem;">2. Keamanan Transaksi &amp; Garansi</h4>
+                    <p style="margin-bottom:0.8rem;">Seluruh pembayaran diproses melalui saluran terverifikasi. Jika link preset rusak atau bermasalah, pembeli berhak mengajukan refund atau bantuan moderasi admin dalam 24 jam.</p>
+                    <h4 style="color:var(--text-main);margin-bottom:0.3rem;">3. Hak Cipta &amp; Moderasi Kreator</h4>
+                    <p style="margin-bottom:0.8rem;">Kreator wajib menjamin karya yang diunggah adalah karya asli atau memiliki lisensi sah. Pelanggaran DMCA akan berakibat pembekuan akun kreator dan penahanan saldo.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast-container" id="toastContainer"></div>
+    </div>
+
+    <!-- Application ES Modules -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
