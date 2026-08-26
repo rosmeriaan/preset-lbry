@@ -414,7 +414,7 @@
             flex: 1;
             border: none;
             background: transparent;
-            font-size: 0.95rem;
+            font-size: 16px;
             font-weight: 500;
             color: var(--text);
             outline: none;
@@ -723,7 +723,7 @@
             background: none;
             outline: none;
             width: 100%;
-            font-size: 0.9rem;
+            font-size: 16px;
             color: var(--text);
             font-family: inherit;
         }
@@ -818,6 +818,12 @@
             align-items: center;
             justify-content: space-between;
             gap: 0.5rem;
+            padding: 0.15rem 1rem;
+        }
+        @media (min-width: 1024px) {
+            .ratio-row {
+                padding: 0.15rem 2rem;
+            }
         }
         .ratio-chips {
             display: flex;
@@ -2717,11 +2723,12 @@
             }
         }
 
+        /* Modal Overlay & Responsive Bottom Sheet System */
         .modal-overlay {
             position: fixed;
             inset: 0;
             z-index: 200;
-            background: rgba(16, 14, 12, 0.46);
+            background: rgba(16, 14, 12, 0.52);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             display: none;
@@ -2737,112 +2744,130 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        /* Modal centered style (e.g. Login / Auth popup / Detail Preset Modal) */
+
         .modal-overlay.modal-centered,
         #loginModal,
-        #detailModal {
+        #detailModal,
+        #registerCreatorModal,
+        #uploadModal {
             z-index: 2500 !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 0.85rem !important;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0;
         }
-        .modal-overlay.modal-centered .modal-sheet,
-        #loginModal .modal-sheet,
-        #detailModal .modal-sheet {
-            border-radius: 18px !important;
-            max-width: 580px !important;
-            width: 100% !important;
-            margin: auto;
-            max-height: 90vh !important;
-            max-height: 90dvh !important;
-            padding: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-            animation: modalCenterPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
-            border: 1px solid var(--border);
-        }
-        #loginModal .modal-sheet {
-            max-width: 440px !important;
-            padding: 1.25rem 1.25rem calc(1.25rem + var(--safe-bottom)) !important;
-            overflow-y: auto !important;
-        }
-        .modal-overlay.modal-centered .sheet-handle,
-        #loginModal .sheet-handle,
-        #detailModal .sheet-handle {
-            display: none !important;
-        }
-        @keyframes modalCenterPop {
-            from {
-                opacity: 0;
-                transform: scale(0.94) translateY(8px);
-            }
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
+
         .modal-sheet {
             background: var(--surface);
-            border-radius: 18px 18px 0 0;
-            max-width: 640px;
+            border-radius: 20px 20px 0 0;
+            max-width: 100%;
             width: 100%;
-            max-height: 90vh;
-            max-height: 90dvh;
+            margin: 0;
+            max-height: 92vh;
+            max-height: 92dvh;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
-            padding: 0.85rem 1.15rem calc(1.25rem + var(--safe-bottom));
+            padding: 0.75rem 1rem calc(1.2rem + var(--safe-bottom));
             animation: sheetSmoothUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.16);
+            border: 1px solid var(--border-soft);
+            border-bottom: none;
         }
+
+        #loginModal .modal-sheet,
+        #detailModal .modal-sheet {
+            border-radius: 20px 20px 0 0;
+            max-width: 100%;
+            width: 100%;
+            margin: 0;
+            max-height: 92vh;
+            max-height: 92dvh;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: sheetSmoothUp 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -8px 36px rgba(0, 0, 0, 0.18);
+            border: 1px solid var(--border-soft);
+            border-bottom: none;
+        }
+
+        #loginModal .modal-sheet {
+            padding: 0.85rem 1.15rem calc(1.25rem + var(--safe-bottom));
+            overflow-y: auto;
+        }
+
+        .sheet-handle {
+            width: 38px;
+            height: 4.5px;
+            background: var(--border);
+            border-radius: 4px;
+            margin: 0.4rem auto 0.65rem;
+            flex-shrink: 0;
+            display: block;
+        }
+
         @keyframes sheetSmoothUp {
             from {
-                transform: translateY(24px);
-                opacity: 0;
+                transform: translateY(100%);
+                opacity: 0.6;
             }
             to {
                 transform: translateY(0);
                 opacity: 1;
             }
         }
-        .sheet-handle {
-            width: 36px;
-            height: 4px;
-            background: var(--border);
-            border-radius: 4px;
-            margin: 0 auto 0.8rem;
+
+        @keyframes modalCenterPop {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
         }
+
         @media (min-width: 768px) {
-            .modal-overlay {
-                align-items: center;
-                padding: 2rem;
+            .modal-overlay,
+            .modal-overlay.modal-centered,
+            #loginModal,
+            #detailModal,
+            #registerCreatorModal,
+            #uploadModal {
+                align-items: center !important;
+                padding: 1.5rem !important;
             }
             .modal-sheet {
-                border-radius: 16px;
-                max-height: 88vh;
-                max-height: 88dvh;
-                animation: modalSmoothIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.14);
+                border-radius: 18px !important;
+                max-width: 600px !important;
+                margin: auto !important;
+                max-height: 88vh !important;
+                max-height: 88dvh !important;
+                animation: modalCenterPop 0.24s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22) !important;
+                border: 1px solid var(--border) !important;
+                padding: 1.25rem 1.4rem calc(1.25rem + var(--safe-bottom)) !important;
+            }
+            #loginModal .modal-sheet {
+                max-width: 440px !important;
+                border-radius: 18px !important;
+                padding: 1.4rem !important;
+            }
+            #detailModal .modal-sheet {
+                max-width: 600px !important;
+                border-radius: 18px !important;
+                padding: 0 !important;
             }
             .sheet-handle {
-                display: none;
-            }
-            @keyframes modalSmoothIn {
-                from {
-                    transform: translateY(10px) scale(0.98);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateY(0) scale(1);
-                    opacity: 1;
-                }
+                display: none !important;
             }
         }
+
         @media (max-width: 480px) {
             .modal-sheet {
-                padding: 0.75rem 0.95rem calc(1.2rem + var(--safe-bottom));
+                padding: 0.65rem 0.85rem calc(1.2rem + var(--safe-bottom));
             }
         }
         .modal-head {
@@ -3329,6 +3354,30 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
+        }
+        @media (max-width: 480px) {
+            .detail-modal-header {
+                padding: 0.65rem 0.85rem 0.45rem;
+            }
+            .detail-slide-tabs {
+                margin: 0.35rem 0.85rem 0.25rem;
+                padding: 2px;
+                gap: 2px;
+            }
+            .detail-tab-btn {
+                padding: 0.38rem 0.25rem;
+                font-size: 0.69rem;
+                gap: 0.25rem;
+            }
+            .detail-tab-btn svg {
+                width: 12px;
+                height: 12px;
+            }
+            .detail-slide-pane {
+                padding: 0.35rem 0.85rem calc(1.2rem + var(--safe-bottom));
+                max-height: calc(92dvh - 110px);
+                max-height: calc(92vh - 110px);
+            }
         }
 
         /* Slide 1: Video Preview & Creator */
@@ -4523,9 +4572,14 @@
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--text);
-            font-size: 0.85rem;
+            font-size: 16px;
             outline: none;
             transition: border-color 0.15s;
+        }
+        @media (min-width: 640px) {
+            .admin-search-box input {
+                font-size: 0.85rem;
+            }
         }
         .admin-search-box input:focus {
             border-color: var(--accent);
