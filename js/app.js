@@ -224,9 +224,15 @@ export function updateHeaderTitle() {
     } else if (state.currentView === 'creators') {
         titleText = 'Kreator';
         docTitle = 'Kreator — Preset Library';
-    } else if (state.currentView === 'profile' || state.currentView === 'akun' || state.currentView === 'purchases' || state.currentView === 'dashboard') {
+    } else if (state.currentView === 'profile' || state.currentView === 'akun') {
         titleText = 'Profile';
         docTitle = 'Profile — Preset Library';
+    } else if (state.currentView === 'purchases') {
+        titleText = 'Pembelian';
+        docTitle = 'Pembelian — Preset Library';
+    } else if (state.currentView === 'dashboard' || state.currentView === 'wallet') {
+        titleText = 'Dashboard';
+        docTitle = 'Dashboard — Preset Library';
     } else if (state.currentView === 'admin') {
         titleText = 'Admin';
         docTitle = 'Admin Moderasi — Preset Library';
@@ -251,6 +257,38 @@ export function updateHeaderTitle() {
         }
     }
     document.title = docTitle;
+
+    // Header buttons visibility:
+    // 1. Icon search di setiap halaman KECUALI di dashboard dan profil
+    // 2. Icon titik tiga HANYA di profil
+    const headerSearchToggle = document.getElementById('headerSearchToggle');
+    const profileMenuToggle = document.getElementById('profileMenuToggle');
+    const profileMenuDropdown = document.getElementById('profileMenuDropdown');
+    const menuLogoutText = document.getElementById('menuLogoutText');
+
+    const isDashboard = state.currentView === 'dashboard' || state.currentView === 'wallet';
+    const isProfile = state.currentView === 'profile' || state.currentView === 'akun';
+
+    if (headerSearchToggle) {
+        if (isDashboard || isProfile) {
+            headerSearchToggle.style.display = 'none';
+        } else {
+            headerSearchToggle.style.display = 'inline-flex';
+        }
+    }
+
+    if (profileMenuToggle) {
+        if (isProfile) {
+            profileMenuToggle.style.display = 'inline-flex';
+        } else {
+            profileMenuToggle.style.display = 'none';
+            if (profileMenuDropdown) profileMenuDropdown.classList.remove('active');
+        }
+    }
+
+    if (menuLogoutText) {
+        menuLogoutText.textContent = state.currentUser ? 'Keluar Akun' : 'Masuk / Daftar';
+    }
 }
 
 export function buildDesktopNav() {
@@ -761,7 +799,6 @@ export function updateAuthUI(user) {
         if (badge) badge.style.display = 'inline-flex';
         if (loginBtn) loginBtn.style.display = 'none';
         if (notifWrap) notifWrap.style.display = 'inline-flex';
-        if (profileMenuToggle) profileMenuToggle.style.display = 'inline-flex';
 
         if (user.email === 'namskyfr@gmail.com') {
             state.isAdmin = true;
@@ -779,6 +816,8 @@ export function updateAuthUI(user) {
         if (userAvatarWrapEl) {
             userAvatarWrapEl.innerHTML = renderAvatarHtml(user, 'avatar-header-badge', 26);
         }
+
+        updateHeaderTitle();
 
         if (firebaseInitialized && db) {
             checkIfCreator(user.uid).then(() => {
@@ -837,6 +876,7 @@ export function updateAuthUI(user) {
         buildDesktopNav();
         buildMobileNav();
     }
+    updateHeaderTitle();
     buildDesktopNav();
     buildMobileNav();
 }
@@ -845,7 +885,7 @@ export function updateAuthUI(user) {
 export function openUploadFlow() {
     if (!state.currentUser) {
         showToast('Yuk masuk atau daftar akun terlebih dahulu!', 'info');
-        promptLogin('🔑 Yuk masuk atau daftar akun gratis dulu untuk mengunggah preset!');
+        promptLogin('Silakan masuk atau daftar akun gratis untuk mengunggah preset');
         return;
     }
     if (!state.isCreator) {
@@ -1144,7 +1184,7 @@ export function attachEventListeners() {
                 e.preventDefault();
                 if (!state.currentUser) {
                     showToast('Yuk masuk atau daftar akun terlebih dahulu untuk menyukai preset!', 'info');
-                    promptLogin('🔑 Yuk masuk atau daftar akun gratis dulu untuk menyukai preset!');
+                    promptLogin('Silakan masuk atau daftar akun gratis untuk menyukai preset');
                     return;
                 }
                 const card = e.target.closest('.card');
@@ -1275,7 +1315,7 @@ export function attachEventListeners() {
                     showToast('Gagal keluar: ' + err.message, 'error');
                 });
             } else {
-                promptLogin('🔑 Silakan masuk atau daftar akun gratis!');
+                promptLogin('Silakan masuk atau daftar akun gratis');
             }
         });
     }

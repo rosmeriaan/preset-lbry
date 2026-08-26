@@ -938,7 +938,7 @@ export function renderPurchasesPage() {
             <div style="flex:1;min-width:240px;">
                 <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
                     <span class="mono" style="font-size:0.8rem;font-weight:700;color:var(--text-muted);">${order.orderNumber || order.id}</span>
-                    <span class="order-status-pill success">✓ Lunas</span>
+                    <span class="order-status-pill success" style="display:inline-flex;align-items:center;gap:3px;">${ICON.check} Lunas</span>
                 </div>
                 <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">${escapeHtml(order.templateTitle || template.judul || 'Preset Video')}</div>
                 <div style="font-size:0.82rem;color:var(--text-muted);margin-top:0.2rem;">Kreator: @${escapeHtml(order.creatorName || 'Kreator')} &bull; ${dateStr}</div>
@@ -946,7 +946,7 @@ export function renderPurchasesPage() {
             <div style="text-align:right;">
                 <div style="font-size:1.1rem;font-weight:800;color:var(--accent);margin-bottom:0.5rem;">${formatRupiah(order.totalAmount)}</div>
                 <div style="display:flex;gap:0.5rem;">
-                    <button class="btn btn-secondary btn-sm open-inv-btn" data-order-id="${order.id}">Struk Invois</button>
+                    <button class="btn btn-secondary btn-sm open-inv-btn" data-order-id="${order.id}">${ICON.receipt} Struk Invois</button>
                     <button class="btn btn-primary btn-sm open-dl-btn" data-template-id="${order.templateId}">Unduh File ${ICON.download || ''}</button>
                 </div>
             </div>
@@ -982,15 +982,23 @@ export function renderCreatorDashboardPage() {
             ${ICON.userPlus}
             <div class="title">Akses Khusus Kreator</div>
             <div class="sub">Daftarkan akun Anda sebagai kreator untuk mengakses dashboard statistik penjualan dan penarikan saldo.</div>
-            <button class="btn btn-primary" id="dashRegisterBtn" style="margin-top:1rem;">Daftar Kreator</button>
+            <button class="btn btn-primary" id="dashRegisterBtn" style="margin-top:1rem;">${ICON.userPlus} Daftar Kreator</button>
         </div>`;
         const regBtn = document.getElementById('dashRegisterBtn');
         if (regBtn && window.goToView) regBtn.addEventListener('click', () => window.goToView('profile'));
         return;
     }
 
-    const mySales = (state.userOrders || []).filter(o => o.creatorUid === state.currentUser.uid && o.status === 'paid');
-    const myTemplates = (state.allTemplates || []).filter(t => t.creatorUid === state.currentUser.uid);
+    state.currentCreatorDashTab = state.currentCreatorDashTab || 'overview';
+    state.creatorDashOrderSearch = state.creatorDashOrderSearch || '';
+
+    const creator = state.currentUserCreator;
+    const creatorDisplayName = creator.displayName || creator.name || 'Kreator';
+    const creatorUsername = creator.name || 'kreator';
+    const verified = isCreatorVerified(creator);
+
+    const mySales = (state.userOrders || []).filter(o => (o.creatorUid === state.currentUser.uid || (o.creatorName && o.creatorName.toLowerCase() === creatorUsername.toLowerCase())) && o.status === 'paid');
+    const myTemplates = (state.allTemplates || []).filter(t => t.creatorUid === state.currentUser.uid || (t.creator && t.creator.toLowerCase() === creatorUsername.toLowerCase()));
 
     const totalGross = mySales.reduce((sum, o) => sum + Number(o.itemPrice || 0), 0);
     const platformFeeRate = 0.10;
@@ -1000,62 +1008,614 @@ export function renderCreatorDashboardPage() {
     const pendingWithdraw = (state.creatorWithdrawals || []).filter(w => w.status === 'pending').reduce((sum, w) => sum + Number(w.amount || 0), 0);
     const availableBalance = Math.max(0, netRevenue - withdrawn - pendingWithdraw);
 
-    let html = `<div class="section-header" style="margin-bottom:1.5rem;">
-        <h2>${ICON.chart} Dashboard Pendapatan Kreator</h2>
-        <p class="sub-text">Pantau performa preset, total pendapatan bersih, dan ajukan penarikan saldo ke rekening/e-wallet Anda.</p>
-    </div>
-    <div class="dash-stats">
-        <div class="stat-card">
-            <span class="label">Total Saldo Siap Cair</span>
-            <span class="val" style="color:var(--accent);">${formatRupiah(availableBalance)}</span>
-            <button class="btn btn-primary btn-sm" id="withdrawBtn" style="margin-top:0.8rem;width:100%;" ${availableBalance < 10000 ? 'disabled title="Minimal penarikan Rp 10.000"' : ''}>
-                ${ICON.wallet} Tarik Saldo Ke Rekening
+    const totalLikes = myTemplates.reduce((sum, t) => sum + Number(t.likes || 0), 0);
+    const totalViews = myTemplates.reduce((sum, t) => sum + Number(t.views || 0), 0);
+    const avgOrderVal = mySales.length > 0 ? Math.round(totalGross / mySales.length) : 0;
+
+    let html = `<div class="creator-dash-container">
+        <!-- HERO IDENTITY HEADER -->
+        <div class="creator-dash-hero">
+            <div class="creator-hero-profile">
+                ${renderAvatarHtml(creator, 'creator-hero-avatar', 56)}
+                <div class="creator-hero-meta">
+                    <h2>
+                        <span>${escapeHtml(creatorDisplayName)}</span>
+                        ${renderVerifiedBadgeHtml(creator, 18)}
+                    </h2>
+                    <div class="sub-handle">
+                        <span class="mono">@${escapeHtml(creatorUsername)}</span>
+                        <span class="creator-pill-tag">${ICON.badgeCheck} Partner Resmi</span>
+                        ${creator.software ? `<span style="font-size:0.75rem;color:var(--text-muted);">• ${escapeHtml(creator.software)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="creator-hero-actions">
+                <button class="btn btn-primary btn-sm" id="creatorHeroUploadBtn">
+                    ${ICON.plusBox} Upload Preset
+                </button>
+                <button class="btn btn-secondary btn-sm" id="creatorHeroViewProfileBtn">
+                    ${ICON.user} Toko Publik
+                </button>
+                <button class="btn btn-secondary btn-sm" id="creatorHeroEditProfileBtn">
+                    ${ICON.edit} Edit Profil
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 EXECUTIVE KPI METRICS -->
+        <div class="creator-kpi-grid">
+            <div class="creator-kpi-card" style="border-top:3px solid var(--accent);">
+                <div class="creator-kpi-head">
+                    <span class="creator-kpi-label">Saldo Siap Cair</span>
+                    <div class="creator-kpi-icon-wrap" style="background:rgba(20,184,166,0.15);color:var(--accent);">
+                        ${ICON.wallet}
+                    </div>
+                </div>
+                <div class="creator-kpi-val" style="color:var(--accent);">${formatRupiah(availableBalance)}</div>
+                <div class="creator-kpi-footer">
+                    <button class="btn btn-primary btn-sm" id="withdrawBtn" style="width:100%;margin-top:0.4rem;padding:0.45rem 0.6rem;font-size:0.78rem;" ${availableBalance < 10000 ? 'disabled title="Minimal penarikan Rp 10.000"' : ''}>
+                        ${ICON.bank} Tarik Saldo
+                    </button>
+                </div>
+            </div>
+
+            <div class="creator-kpi-card">
+                <div class="creator-kpi-head">
+                    <span class="creator-kpi-label">Pendapatan Bersih (90%)</span>
+                    <div class="creator-kpi-icon-wrap" style="background:rgba(16,185,129,0.12);color:#10b981;">
+                        ${ICON.trendingUp}
+                    </div>
+                </div>
+                <div class="creator-kpi-val">${formatRupiah(netRevenue)}</div>
+                <div class="creator-kpi-footer">
+                    <span>Kotor: ${formatRupiah(totalGross)}</span>
+                    <span class="creator-kpi-badge">${ICON.trend} 90% Share</span>
+                </div>
+            </div>
+
+            <div class="creator-kpi-card">
+                <div class="creator-kpi-head">
+                    <span class="creator-kpi-label">Preset Terjual</span>
+                    <div class="creator-kpi-icon-wrap" style="background:rgba(59,130,246,0.12);color:#3b82f6;">
+                        ${ICON.shoppingBag}
+                    </div>
+                </div>
+                <div class="creator-kpi-val">${mySales.length} Transaksi</div>
+                <div class="creator-kpi-footer">
+                    <span>Rata-rata: ${formatRupiah(avgOrderVal)}</span>
+                    <span style="font-size:0.7rem;color:var(--text-muted);">${myTemplates.length} Preset</span>
+                </div>
+            </div>
+
+            <div class="creator-kpi-card">
+                <div class="creator-kpi-head">
+                    <span class="creator-kpi-label">Performa & Jangkauan</span>
+                    <div class="creator-kpi-icon-wrap" style="background:rgba(245,158,11,0.12);color:#f59e0b;">
+                        ${ICON.activity || ICON.sparkle}
+                    </div>
+                </div>
+                <div class="creator-kpi-val">${formatNumber(totalLikes)} Disukai</div>
+                <div class="creator-kpi-footer">
+                    <span>${formatNumber(totalViews)} Dilihat Pembeli</span>
+                    <span class="creator-kpi-badge" style="color:#d97706;background:rgba(245,158,11,0.1);">${ICON.heart} Engagement</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD NAVIGATION SUB-TABS -->
+        <div class="creator-dash-nav">
+            <button class="creator-dash-tab ${state.currentCreatorDashTab === 'overview' ? 'active' : ''}" data-ctab="overview">
+                ${ICON.chart} Ringkasan &amp; Analitik
+            </button>
+            <button class="creator-dash-tab ${state.currentCreatorDashTab === 'orders' ? 'active' : ''}" data-ctab="orders">
+                ${ICON.receipt} Riwayat Penjualan (${mySales.length})
+            </button>
+            <button class="creator-dash-tab ${state.currentCreatorDashTab === 'withdrawals' ? 'active' : ''}" data-ctab="withdrawals">
+                ${ICON.bank} Penarikan Dana (${(state.creatorWithdrawals || []).length})
+            </button>
+            <button class="creator-dash-tab ${state.currentCreatorDashTab === 'presets' ? 'active' : ''}" data-ctab="presets">
+                ${ICON.package} Manajemen Preset (${myTemplates.length})
             </button>
         </div>
-        <div class="stat-card">
-            <span class="label">Total Pendapatan Bersih (90%)</span>
-            <span class="val">${formatRupiah(netRevenue)}</span>
-            <span style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">Total kotor: ${formatRupiah(totalGross)}</span>
-        </div>
-        <div class="stat-card">
-            <span class="label">Total Preset Terjual</span>
-            <span class="val">${mySales.length} Transaksi</span>
-            <span style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem;">Dari ${myTemplates.length} preset publik</span>
-        </div>
-    </div>
-    <div style="margin-top:2rem;">
-        <h3 style="font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">📋 Riwayat Penjualan Terakhir</h3>`;
 
-    if (mySales.length === 0) {
-        html += '<div style="background:var(--card-bg);padding:1.5rem;border-radius:12px;border:1px solid var(--border);text-align:center;color:var(--text-muted);font-size:0.85rem;">Belum ada penjualan preset berbayar. Bagikan link preset kamu ke media sosial!</div>';
-    } else {
-        html += `<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow-x:auto;">
-            <table class="admin-table">
-                <thead><tr><th>No. Pesanan</th><th>Preset</th><th>Pembeli</th><th>Pendapatan</th><th>Tanggal</th></tr></thead>
-                <tbody>`;
-        mySales.forEach(s => {
-            html += `<tr>
-                <td class="mono">${s.orderNumber || s.id}</td>
-                <td><strong>${escapeHtml(s.templateTitle || 'Preset')}</strong></td>
-                <td>${escapeHtml(s.buyerName || 'User')}</td>
-                <td style="color:var(--accent);font-weight:700;">+${formatRupiah(Math.floor(s.itemPrice * 0.9))}</td>
-                <td>${formatDate(s.createdAt)}</td>
-            </tr>`;
-        });
-        html += '</tbody></table></div>';
-    }
+        <!-- TAB CONTENT CONTAINER -->
+        <div id="creatorTabContent">
+            ${renderCreatorTabContent(state.currentCreatorDashTab, {
+                mySales,
+                myTemplates,
+                availableBalance,
+                withdrawn,
+                pendingWithdraw,
+                netRevenue,
+                totalGross
+            })}
+        </div>
+    </div>`;
 
-    html += '</div>';
     cardGrid.innerHTML = html;
-
-    const withdrawBtn = document.getElementById('withdrawBtn');
-    if (withdrawBtn) {
-        withdrawBtn.addEventListener('click', () => {
-            openWithdrawModal(availableBalance);
-        });
-    }
+    bindCreatorDashboardEvents(availableBalance);
 }
 
+// ===== RENDER SUB-TAB CONTENT =====
+function renderCreatorTabContent(tab, data) {
+    if (tab === 'orders') {
+        return renderCreatorOrdersTabHtml(data.mySales);
+    } else if (tab === 'withdrawals') {
+        return renderCreatorWithdrawalsTabHtml(data);
+    } else if (tab === 'presets') {
+        return renderCreatorPresetsTabHtml(data.myTemplates);
+    }
+    return renderCreatorOverviewTabHtml(data);
+}
+
+// ===== TAB 1: OVERVIEW & ANALYTICS =====
+function renderCreatorOverviewTabHtml(data) {
+    const { mySales, myTemplates } = data;
+
+    // Calculate last 7 days revenue for chart
+    const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+    const now = new Date();
+    const daysData = [];
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        d.setHours(0, 0, 0, 0);
+
+        const dEnd = new Date(d);
+        dEnd.setHours(23, 59, 59, 999);
+
+        const matchingSales = (mySales || []).filter(s => {
+            if (!s.createdAt) return false;
+            const sDate = s.createdAt.toDate ? s.createdAt.toDate() : new Date(s.createdAt);
+            return sDate >= d && sDate <= dEnd;
+        });
+
+        const dayRev = matchingSales.reduce((sum, s) => sum + Math.floor(Number(s.itemPrice || 0) * 0.9), 0);
+        daysData.push({
+            label: dayNames[d.getDay()],
+            dateStr: `${d.getDate()}/${d.getMonth() + 1}`,
+            revenue: dayRev,
+            count: matchingSales.length
+        });
+    }
+
+    const maxRev = Math.max(...daysData.map(d => d.revenue), 10000);
+
+    // Aggregate Top Presets by sales
+    const presetSalesMap = {};
+    (mySales || []).forEach(s => {
+        const key = s.templateId || s.templateTitle || 'Unknown';
+        if (!presetSalesMap[key]) {
+            presetSalesMap[key] = {
+                title: s.templateTitle || 'Preset',
+                count: 0,
+                revenue: 0,
+                thumb: ''
+            };
+            const match = (myTemplates || []).find(t => t.id === s.templateId || t.judul === s.templateTitle);
+            if (match) {
+                presetSalesMap[key].thumb = thumbYoutube(getYoutubeId(match.linkYoutube));
+            }
+        }
+        presetSalesMap[key].count += 1;
+        presetSalesMap[key].revenue += Math.floor(Number(s.itemPrice || 0) * 0.9);
+    });
+
+    const topPresets = Object.values(presetSalesMap).sort((a, b) => b.revenue - a.revenue).slice(0, 4);
+
+    return `<div class="creator-analytics-grid">
+        <!-- 7-DAY REVENUE BAR CHART -->
+        <div class="creator-content-card">
+            <div class="creator-card-header">
+                <h3>${ICON.chart} Grafik Pendapatan 7 Hari Terakhir</h3>
+                <span class="status-chip success">${ICON.checkCircle} Real-time</span>
+            </div>
+            
+            <div class="chart-bar-container">
+                ${daysData.map(d => {
+                    const pct = Math.max(8, Math.round((d.revenue / maxRev) * 100));
+                    return `<div class="chart-day-col">
+                        <div class="chart-tooltip-text">${formatRupiah(d.revenue)} (${d.count} order)</div>
+                        <div class="chart-day-bar" style="height:${pct}%;"></div>
+                        <span class="chart-day-label">${d.label}</span>
+                    </div>`;
+                }).join('')}
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.76rem;color:var(--text-muted);padding-top:0.4rem;">
+                <span>Total 7 Hari: <strong>${formatRupiah(daysData.reduce((s, d) => s + d.revenue, 0))}</strong></span>
+                <span>Rata-rata: <strong>${formatRupiah(Math.round(daysData.reduce((s, d) => s + d.revenue, 0) / 7))} / hari</strong></span>
+            </div>
+        </div>
+
+        <!-- TOP SELLING PRESETS LEADERBOARD -->
+        <div class="creator-content-card">
+            <div class="creator-card-header">
+                <h3>${ICON.starFilled} Preset Terlaris</h3>
+                <span style="font-size:0.75rem;color:var(--text-muted);">Top Penjualan</span>
+            </div>
+
+            <div class="creator-leaderboard-list">
+                ${topPresets.length === 0 ? `
+                    <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.84rem;">
+                        ${ICON.shoppingBag}
+                        <p style="margin-top:0.5rem;">Belum ada data penjualan preset berbayar.</p>
+                    </div>
+                ` : topPresets.map((p, idx) => `
+                    <div class="creator-leaderboard-item">
+                        <div class="creator-lb-left">
+                            <span class="creator-lb-rank">#${idx + 1}</span>
+                            ${p.thumb ? `<img src="${p.thumb}" class="creator-lb-thumb" alt="${escapeHtml(p.title)}" />` : `<div class="creator-lb-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">${ICON.image}</div>`}
+                            <div class="creator-lb-info">
+                                <span class="creator-lb-title">${escapeHtml(p.title)}</span>
+                                <span class="creator-lb-sub">${p.count} kali terjual</span>
+                            </div>
+                        </div>
+                        <div class="creator-lb-revenue">
+                            <div class="creator-lb-amount">+${formatRupiah(p.revenue)}</div>
+                            <div class="creator-lb-count">Pendapatan Bersih</div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATOR BEST PRACTICES & TIPS -->
+    <div class="creator-content-card" style="margin-top:1.25rem;">
+        <div class="creator-card-header">
+            <h3>${ICON.sparkles || ICON.sparkle} Panduan &amp; Tips Sukses Kreator</h3>
+            <span class="creator-pill-tag">${ICON.shield} Standard Kualitas</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
+            <div style="background:var(--bg-alt);padding:1rem;border-radius:12px;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-weight:700;color:var(--text-main);font-size:0.86rem;margin-bottom:0.3rem;">
+                    ${ICON.sparkle} Video Preview Menarik
+                </div>
+                <p style="margin:0;font-size:0.78rem;color:var(--text-muted);line-height:1.5;">Gunakan video preview YouTube atau CapCut beresolusi tinggi agar calon pembeli dapat melihat hasil transisi preset secara jelas.</p>
+            </div>
+            <div style="background:var(--bg-alt);padding:1rem;border-radius:12px;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-weight:700;color:var(--text-main);font-size:0.86rem;margin-bottom:0.3rem;">
+                    ${ICON.link} Direct Link Google Drive / AM
+                </div>
+                <p style="margin:0;font-size:0.78rem;color:var(--text-muted);line-height:1.5;">Pastikan akses file Google Drive disetel ke "Siapa saja yang memiliki link" agar pembeli otomatis mendapat akses file setelah checkout.</p>
+            </div>
+            <div style="background:var(--bg-alt);padding:1rem;border-radius:12px;border:1px solid var(--border-color);">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-weight:700;color:var(--text-main);font-size:0.86rem;margin-bottom:0.3rem;">
+                    ${ICON.share} Bagikan Link ke Komunitas
+                </div>
+                <p style="margin:0;font-size:0.78rem;color:var(--text-muted);line-height:1.5;">Sertakan kode unik preset Anda di caption TikTok, IG Reels, dan YouTube Shorts untuk mengalirkan traffic langsung ke halaman profil Anda.</p>
+            </div>
+        </div>
+    </div>`;
+}
+
+// ===== TAB 2: ORDERS & SALES TRANSACTIONS =====
+function renderCreatorOrdersTabHtml(sales) {
+    const query = (state.creatorDashOrderSearch || '').toLowerCase().trim();
+    let list = (sales || []).slice();
+
+    if (query) {
+        list = list.filter(s => {
+            const num = (s.orderNumber || s.id || '').toLowerCase();
+            const title = (s.templateTitle || '').toLowerCase();
+            const buyer = (s.buyerName || '').toLowerCase();
+            return num.includes(query) || title.includes(query) || buyer.includes(query);
+        });
+    }
+
+    let html = `<div class="creator-content-card">
+        <div class="creator-card-header">
+            <h3>${ICON.receipt} Riwayat Penjualan Preset (${sales.length})</h3>
+            <div class="creator-search-box">
+                ${ICON.search}
+                <input type="text" id="creatorOrderSearchInput" placeholder="Cari no. pesanan, judul, pembeli..." value="${escapeHtml(state.creatorDashOrderSearch || '')}" />
+            </div>
+        </div>`;
+
+    if (list.length === 0) {
+        html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+            ${ICON.receipt}
+            <p style="margin-top:0.6rem;font-size:0.9rem;">${query ? 'Tidak ada transaksi yang cocok dengan pencarian.' : 'Belum ada transaksi penjualan berbayar.'}</p>
+        </div>`;
+    } else {
+        html += `<div style="overflow-x:auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>No. Pesanan</th>
+                        <th>Preset Terjual</th>
+                        <th>Pembeli</th>
+                        <th>Pendapatan Bersih</th>
+                        <th>Tanggal</th>
+                        <th>Status</th>
+                        <th style="text-align:right;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        list.forEach(s => {
+            const netAmount = Math.floor(Number(s.itemPrice || 0) * 0.9);
+            html += `<tr>
+                <td class="mono" style="font-weight:700;color:var(--text-main);">${escapeHtml(s.orderNumber || s.id)}</td>
+                <td>
+                    <div style="font-weight:700;color:var(--text-main);">${escapeHtml(s.templateTitle || 'Preset')}</div>
+                    <div style="font-size:0.72rem;color:var(--text-muted);">Harga: ${formatRupiah(s.itemPrice)}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600;">${escapeHtml(s.buyerName || 'User')}</div>
+                    ${s.buyerEmail ? `<div style="font-size:0.72rem;color:var(--text-muted);">${escapeHtml(s.buyerEmail)}</div>` : ''}
+                </td>
+                <td style="color:var(--accent);font-weight:800;">+${formatRupiah(netAmount)}</td>
+                <td style="font-size:0.78rem;color:var(--text-secondary);">${formatDate(s.createdAt)}</td>
+                <td>
+                    <span class="status-chip success">${ICON.check} Lunas</span>
+                </td>
+                <td style="text-align:right;">
+                    <button class="btn btn-secondary btn-sm creator-inv-btn" data-id="${s.id}" style="font-size:0.74rem;padding:0.3rem 0.65rem;">
+                        ${ICON.receipt} Struk
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
+// ===== TAB 3: WITHDRAWALS & PAYOUTS =====
+function renderCreatorWithdrawalsTabHtml(data) {
+    const { availableBalance, withdrawn, pendingWithdraw } = data;
+    const withdrawals = (state.creatorWithdrawals || []).filter(w => w.creatorUid === state.currentUser.uid);
+
+    let html = `<div class="creator-content-card">
+        <div class="payout-summary-bar">
+            <div class="payout-summary-item">
+                <span class="p-label">Total Telah Dicairkan</span>
+                <span class="p-val" style="color:#10b981;">${formatRupiah(withdrawn)}</span>
+            </div>
+            <div class="payout-summary-item">
+                <span class="p-label">Sedang Diproses Admin</span>
+                <span class="p-val" style="color:#f59e0b;">${formatRupiah(pendingWithdraw)}</span>
+            </div>
+            <div class="payout-summary-item">
+                <span class="p-label">Saldo Siap Dicairkan</span>
+                <span class="p-val" style="color:var(--accent);">${formatRupiah(availableBalance)}</span>
+            </div>
+        </div>
+
+        <div class="creator-card-header">
+            <h3>${ICON.bank} Riwayat Pengajuan Penarikan Saldo (${withdrawals.length})</h3>
+            <button class="btn btn-primary btn-sm" id="tabWithdrawBtn" ${availableBalance < 10000 ? 'disabled title="Minimal penarikan Rp 10.000"' : ''}>
+                ${ICON.wallet} Ajukan Penarikan
+            </button>
+        </div>`;
+
+    if (withdrawals.length === 0) {
+        html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+            ${ICON.bank}
+            <p style="margin-top:0.6rem;font-size:0.9rem;">Belum ada riwayat penarikan dana.</p>
+        </div>`;
+    } else {
+        html += `<div style="overflow-x:auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Tanggal Pengajuan</th>
+                        <th>Bank / E-Wallet</th>
+                        <th>No. Rekening / HP</th>
+                        <th>Nama Penerima</th>
+                        <th>Nominal</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        withdrawals.forEach(w => {
+            let statusBadge = `<span class="status-chip pending">${ICON.clock} Menunggu Diproses</span>`;
+            if (w.status === 'completed') {
+                statusBadge = `<span class="status-chip success">${ICON.checkCircle} Berhasil Ditransfer</span>`;
+            } else if (w.status === 'rejected') {
+                statusBadge = `<span class="status-chip" style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);">${ICON.alert} Ditolak</span>`;
+            }
+
+            html += `<tr>
+                <td style="font-size:0.8rem;">${formatDate(w.createdAt)}</td>
+                <td><span class="bank-badge">${escapeHtml(w.bank || 'Bank')}</span></td>
+                <td class="mono" style="font-weight:600;">${escapeHtml(w.accountNumber || '-')}</td>
+                <td>${escapeHtml(w.accountHolder || '-')}</td>
+                <td style="font-weight:800;color:var(--text-main);">${formatRupiah(w.amount)}</td>
+                <td>${statusBadge}</td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
+// ===== TAB 4: PRESETS MANAGEMENT =====
+function renderCreatorPresetsTabHtml(templates) {
+    let html = `<div class="creator-content-card">
+        <div class="creator-card-header">
+            <h3>${ICON.package} Manajemen Preset Portofolio (${templates.length})</h3>
+            <button class="btn btn-primary btn-sm" id="tabAddPresetBtn">
+                ${ICON.plusBox} Tambah Preset Baru
+            </button>
+        </div>`;
+
+    if (templates.length === 0) {
+        html += `<div style="text-align:center;padding:3rem 1rem;color:var(--text-muted);">
+            ${ICON.package}
+            <p style="margin-top:0.6rem;font-size:0.9rem;">Anda belum mengunggah preset.</p>
+        </div>`;
+    } else {
+        html += `<div style="display:flex;flex-direction:column;">`;
+        templates.forEach(t => {
+            const ytId = getYoutubeId(t.linkYoutube);
+            const thumb = ytId ? thumbYoutube(ytId) : '';
+            const isPaid = t.license === 'paid';
+
+            html += `<div class="creator-preset-row">
+                <div class="creator-preset-left">
+                    ${thumb ? `<img src="${thumb}" class="creator-preset-thumb" alt="${escapeHtml(t.judul)}" />` : `<div class="creator-preset-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">${ICON.image}</div>`}
+                    <div class="creator-preset-details">
+                        <div class="creator-preset-name">${escapeHtml(t.judul || 'Tanpa Judul')}</div>
+                        <div class="creator-preset-meta">
+                            <span class="mono" style="font-size:0.72rem;background:var(--bg-alt);padding:1px 6px;border-radius:4px;border:1px solid var(--border-color);">#${escapeHtml(t.kode || t.id.slice(0,6))}</span>
+                            <span>${escapeHtml(t.kategori || 'Preset')} (${escapeHtml(t.aspectRatio || '16:9')})</span>
+                            <span class="status-chip ${isPaid ? 'pending' : 'success'}" style="font-size:0.68rem;padding:1px 6px;">
+                                ${isPaid ? `${ICON.coin} ${formatRupiah(t.harga)}` : 'Gratis'}
+                            </span>
+                            <span>${t.likes || 0} ${ICON.heart}</span>
+                            <span>${t.views || 0} ${ICON.eye}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="creator-preset-actions">
+                    <button class="btn btn-secondary btn-sm preset-action-view" data-id="${t.id}" title="Lihat Preview">
+                        ${ICON.eye}
+                    </button>
+                    <button class="btn btn-secondary btn-sm preset-action-edit" data-id="${t.id}" title="Edit Preset">
+                        ${ICON.edit}
+                    </button>
+                    <button class="btn btn-secondary btn-sm preset-action-copy" data-kode="${t.kode || ''}" title="Salin Link Preset">
+                        ${ICON.link}
+                    </button>
+                    <button class="btn btn-secondary btn-sm preset-action-delete" data-id="${t.id}" data-judul="${escapeHtml(t.judul)}" title="Hapus Preset" style="color:#ef4444;">
+                        ${ICON.trash}
+                    </button>
+                </div>
+            </div>`;
+        });
+        html += `</div>`;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
+// ===== BIND CREATOR DASHBOARD EVENTS =====
+function bindCreatorDashboardEvents(availableBalance) {
+    // Top Hero Buttons
+    const heroUpload = document.getElementById('creatorHeroUploadBtn');
+    if (heroUpload && window.openUploadFlow) {
+        heroUpload.addEventListener('click', () => window.openUploadFlow());
+    }
+
+    const heroProfile = document.getElementById('creatorHeroViewProfileBtn');
+    if (heroProfile && window.goToView) {
+        heroProfile.addEventListener('click', () => window.goToView('creators', state.currentUserCreator));
+    }
+
+    const heroEditProfile = document.getElementById('creatorHeroEditProfileBtn');
+    if (heroEditProfile && window.openEditProfileModal) {
+        heroEditProfile.addEventListener('click', () => window.openEditProfileModal());
+    }
+
+    // Withdraw CTAs
+    const withdrawBtn = document.getElementById('withdrawBtn');
+    if (withdrawBtn) {
+        withdrawBtn.addEventListener('click', () => openWithdrawModal(availableBalance));
+    }
+
+    const tabWithdrawBtn = document.getElementById('tabWithdrawBtn');
+    if (tabWithdrawBtn) {
+        tabWithdrawBtn.addEventListener('click', () => openWithdrawModal(availableBalance));
+    }
+
+    // Sub-Tabs Switching
+    document.querySelectorAll('.creator-dash-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            state.currentCreatorDashTab = this.dataset.ctab;
+            renderCreatorDashboardPage();
+        });
+    });
+
+    // Orders search
+    const orderSearch = document.getElementById('creatorOrderSearchInput');
+    if (orderSearch) {
+        orderSearch.addEventListener('input', function() {
+            state.creatorDashOrderSearch = this.value;
+            const container = document.getElementById('creatorTabContent');
+            if (container) {
+                const creator = state.currentUserCreator;
+                const creatorUsername = (creator && creator.name) || '';
+                const mySales = (state.userOrders || []).filter(o => (o.creatorUid === state.currentUser.uid || (o.creatorName && o.creatorName.toLowerCase() === creatorUsername.toLowerCase())) && o.status === 'paid');
+                container.innerHTML = renderCreatorOrdersTabHtml(mySales);
+                bindCreatorTabInteractiveEvents(availableBalance);
+            }
+        });
+    }
+
+    // Presets tab add button
+    const addPresetBtn = document.getElementById('tabAddPresetBtn');
+    if (addPresetBtn && window.openUploadFlow) {
+        addPresetBtn.addEventListener('click', () => window.openUploadFlow());
+    }
+
+    bindCreatorTabInteractiveEvents(availableBalance);
+}
+
+function bindCreatorTabInteractiveEvents(availableBalance) {
+    // Invoice buttons
+    document.querySelectorAll('.creator-inv-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const o = (state.userOrders || []).find(ord => ord.id === this.dataset.id);
+            if (o) openInvoiceModal(o);
+        });
+    });
+
+    // Preset Action Buttons
+    document.querySelectorAll('.preset-action-view').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const t = (state.allTemplates || []).find(tpl => tpl.id === this.dataset.id);
+            if (t) openDetail(t);
+        });
+    });
+
+    document.querySelectorAll('.preset-action-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const t = (state.allTemplates || []).find(tpl => tpl.id === this.dataset.id);
+            if (t && window.openEditTemplateModal) window.openEditTemplateModal(t);
+        });
+    });
+
+    document.querySelectorAll('.preset-action-copy').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const kode = this.dataset.kode;
+            if (kode) {
+                const url = window.location.origin + window.location.pathname + '#t=' + kode;
+                copyToClipboard(url);
+                showToast('Link preset berhasil disalin ke clipboard!', 'success');
+            }
+        });
+    });
+
+    document.querySelectorAll('.preset-action-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const judul = this.dataset.judul;
+            if (confirm(`Apakah Anda yakin ingin menghapus preset "${judul}"? Tindakan ini tidak dapat dibatalkan.`)) {
+                deleteTemplate(id).then(() => {
+                    showToast(`Preset "${judul}" berhasil dihapus.`, 'info');
+                    state.allTemplates = (state.allTemplates || []).filter(tpl => tpl.id !== id);
+                    renderCreatorDashboardPage();
+                }).catch(err => {
+                    showToast('Gagal menghapus preset: ' + err.message, 'error');
+                });
+            }
+        });
+    });
+}
+
+// ===== UPGRADED PROFESSIONAL WITHDRAW MODAL =====
 export function openWithdrawModal(maxAmount) {
     const modal = document.getElementById('withdrawModal');
     const content = document.getElementById('withdrawContent');
@@ -1065,38 +1625,91 @@ export function openWithdrawModal(maxAmount) {
         <h2>${ICON.wallet} Pengajuan Penarikan Saldo</h2>
         <button class="modal-close" id="closeWithdrawModal">${ICON.close}</button>
     </div>
-    <form id="withdrawForm" style="margin-top:1rem;">
+    <form id="withdrawForm" style="margin-top:1.2rem;">
         <div class="form-group">
-            <label>Jumlah Penarikan (Maksimal: ${formatRupiah(maxAmount)}) *</label>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                <label style="margin:0;font-weight:700;">Nominal Penarikan *</label>
+                <span style="font-size:0.75rem;color:var(--accent);font-weight:700;">Saldo: ${formatRupiah(maxAmount)}</span>
+            </div>
             <input type="number" id="wAmount" required min="10000" max="${maxAmount}" value="${maxAmount}" placeholder="Minimal Rp 10.000" />
+            <div class="withdraw-quick-presets">
+                <button type="button" class="withdraw-quick-btn" data-pct="0.25">25%</button>
+                <button type="button" class="withdraw-quick-btn" data-pct="0.50">50%</button>
+                <button type="button" class="withdraw-quick-btn" data-pct="0.75">75%</button>
+                <button type="button" class="withdraw-quick-btn" data-pct="1.00">100% (Semua)</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label>Pilih Bank / E-Wallet Tujuan *</label>
+
+        <div class="form-group" style="margin-top:1rem;">
+            <label style="font-weight:700;">Pilih Bank / E-Wallet Tujuan *</label>
             <select id="wBank" required>
-                <option value="BCA">Bank BCA</option>
+                <option value="BCA">Bank BCA (Bank Central Asia)</option>
                 <option value="Mandiri">Bank Mandiri</option>
-                <option value="BRI">Bank BRI</option>
-                <option value="BNI">Bank BNI</option>
+                <option value="BRI">Bank BRI (Bank Rakyat Indonesia)</option>
+                <option value="BNI">Bank BNI (Bank Negara Indonesia)</option>
                 <option value="GoPay">E-Wallet GoPay</option>
                 <option value="DANA">E-Wallet DANA</option>
                 <option value="OVO">E-Wallet OVO</option>
+                <option value="ShopeePay">E-Wallet ShopeePay</option>
             </select>
         </div>
+
         <div class="form-group">
-            <label>Nomor Rekening / No. HP E-Wallet *</label>
-            <input type="text" id="wAccount" required placeholder="Contoh: 1234567890" />
+            <label style="font-weight:700;">Nomor Rekening / No. HP E-Wallet *</label>
+            <input type="text" id="wAccount" required placeholder="Contoh: 1234567890 / 08123456789" />
         </div>
+
         <div class="form-group">
-            <label>Nama Pemilik Rekening *</label>
-            <input type="text" id="wName" required placeholder="Sesuai nama di buku tabungan/e-wallet" />
+            <label style="font-weight:700;">Nama Pemilik Rekening *</label>
+            <input type="text" id="wName" required placeholder="Sesuai nama di buku tabungan/e-wallet" value="${escapeHtml((state.currentUserCreator && state.currentUserCreator.displayName) || '')}" />
         </div>
-        <div style="margin-top:1.2rem;display:flex;gap:0.8rem;">
+
+        <!-- BREAKDOWN SUMMARY BOX -->
+        <div style="background:var(--bg-alt);border:1px solid var(--border-color);border-radius:12px;padding:0.9rem 1rem;margin-top:1.2rem;font-size:0.8rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+                <span style="color:var(--text-muted);">Biaya Administrasi:</span>
+                <span style="color:#10b981;font-weight:700;">Rp 0 (Gratis)</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem;">
+                <span style="color:var(--text-muted);">Estimasi Pencairan:</span>
+                <span style="color:var(--text-main);font-weight:600;">1x24 Jam Hari Kerja</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding-top:0.4rem;border-top:1px dashed var(--border-color);font-weight:800;">
+                <span>Total Dana Diterima:</span>
+                <span id="withdrawTotalReceive" style="color:var(--accent);font-size:0.95rem;">${formatRupiah(maxAmount)}</span>
+            </div>
+        </div>
+
+        <div style="margin-top:1.4rem;display:flex;gap:0.8rem;">
             <button type="button" class="btn btn-secondary" id="cancelWithdrawBtn" style="flex:1;">Batal</button>
-            <button type="submit" class="btn btn-primary" style="flex:2;">Kirim Pengajuan Penarikan</button>
+            <button type="submit" class="btn btn-primary" style="flex:2;">
+                ${ICON.bank} Kirim Pengajuan
+            </button>
         </div>
     </form>`;
 
     modal.classList.add('active');
+
+    const amountInput = document.getElementById('wAmount');
+    const totalReceiveEl = document.getElementById('withdrawTotalReceive');
+
+    if (amountInput && totalReceiveEl) {
+        amountInput.addEventListener('input', function() {
+            const val = parseInt(this.value, 10) || 0;
+            totalReceiveEl.textContent = formatRupiah(val);
+        });
+    }
+
+    document.querySelectorAll('.withdraw-quick-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const pct = parseFloat(this.dataset.pct);
+            const val = Math.floor(maxAmount * pct);
+            if (amountInput) {
+                amountInput.value = val;
+                if (totalReceiveEl) totalReceiveEl.textContent = formatRupiah(val);
+            }
+        });
+    });
 
     document.getElementById('closeWithdrawModal').addEventListener('click', () => modal.classList.remove('active'));
     document.getElementById('cancelWithdrawBtn').addEventListener('click', () => modal.classList.remove('active'));
@@ -1109,11 +1722,11 @@ export function openWithdrawModal(maxAmount) {
         const name = document.getElementById('wName').value.trim();
 
         if (!amount || amount < 10000 || amount > maxAmount) {
-            showToast('Jumlah penarikan tidak valid', 'error');
+            showToast('Jumlah penarikan minimal Rp 10.000 dan tidak melebihi saldo tersedia', 'error');
             return;
         }
         if (!account || !name) {
-            showToast('Lengkapi nomor rekening dan nama pemilik', 'error');
+            showToast('Lengkapi nomor rekening dan nama pemilik akun', 'error');
             return;
         }
 
@@ -1129,7 +1742,7 @@ export function openWithdrawModal(maxAmount) {
         };
 
         addWithdrawal(withdrawalData).then(() => {
-            showToast('Pengajuan penarikan berhasil dikirim! Tim admin akan memproses transfer.', 'success');
+            showToast('Pengajuan penarikan berhasil dikirim! Tim admin akan segera mentransfer dana.', 'success');
             modal.classList.remove('active');
             state.creatorWithdrawals.unshift(Object.assign({}, withdrawalData, { createdAt: new Date() }));
             renderCreatorDashboardPage();
@@ -1203,7 +1816,7 @@ export function renderAdminPanelPage() {
             </div>
             <div class="admin-filter-chips">
                 <button class="admin-filter-chip ${state.adminCreatorFilterStatus === 'all' ? 'active' : ''}" data-status="all">Semua (${state.allCreators.length})</button>
-                <button class="admin-filter-chip ${state.adminCreatorFilterStatus === 'verified' ? 'active' : ''}" data-status="verified">✓ Terverifikasi (${verifiedCreatorsCount})</button>
+                <button class="admin-filter-chip ${state.adminCreatorFilterStatus === 'verified' ? 'active' : ''}" data-status="verified">${ICON.badgeCheck} Terverifikasi (${verifiedCreatorsCount})</button>
                 <button class="admin-filter-chip ${state.adminCreatorFilterStatus === 'unverified' ? 'active' : ''}" data-status="unverified">Belum Verifikasi (${unverifiedCount})</button>
             </div>
         </div>
@@ -1230,8 +1843,8 @@ export function renderAdminPanelPage() {
                     <td>${escapeHtml(o.buyerName || 'Pembeli')}</td>
                     <td>@${escapeHtml(o.creatorName || 'Kreator')}</td>
                     <td style="font-weight:700;">${formatRupiah(o.totalAmount)}</td>
-                    <td><span class="order-status-pill success">✓ ${o.status.toUpperCase()}</span></td>
-                    <td><button class="btn btn-secondary btn-sm admin-inv-btn" data-id="${o.id}">Struk</button></td>
+                    <td><span class="order-status-pill success" style="display:inline-flex;align-items:center;gap:4px;">${ICON.check} ${o.status.toUpperCase()}</span></td>
+                    <td><button class="btn btn-secondary btn-sm admin-inv-btn" data-id="${o.id}">${ICON.receipt} Struk</button></td>
                 </tr>`;
             });
             html += '</tbody></table></div>';
@@ -1323,11 +1936,11 @@ export function renderAdminCreatorTableHtml() {
             </td>
             <td style="text-align:right;">
                 ${verified ? 
-                    `<button class="btn btn-outline-danger btn-sm admin-verify-toggle-btn" data-id="${c.id}" data-uid="${c.uid || c.id}" data-action="revoke" data-name="${escapeHtml(displayName)}" data-username="${escapeHtml(c.name || '')}" style="font-size:0.75rem;padding:0.32rem 0.75rem;">
-                        ✕ Cabut Centang Biru
-                    </button>` :
-                    `<button class="btn btn-primary btn-sm admin-verify-toggle-btn" data-id="${c.id}" data-uid="${c.uid || c.id}" data-action="grant" data-name="${escapeHtml(displayName)}" data-username="${escapeHtml(c.name || '')}" style="background:#1d9bf0;border-color:#1d9bf0;color:#fff;font-size:0.75rem;padding:0.32rem 0.75rem;">
-                        ⚡ Beri Centang Biru
+                    `<button class="btn btn-outline-danger btn-sm admin-verify-toggle-btn" data-id="${c.id}" data-uid="${c.uid || c.id}" data-action="revoke" data-name="${escapeHtml(displayName)}" data-username="${escapeHtml(c.name || '')}" style="font-size:0.75rem;padding:0.32rem 0.75rem;display:inline-flex;align-items:center;gap:4px;">
+                        ${ICON.close} Cabut Centang Biru
+                    </button>` : 
+                    `<button class="btn btn-primary btn-sm admin-verify-toggle-btn" data-id="${c.id}" data-uid="${c.uid || c.id}" data-action="grant" data-name="${escapeHtml(displayName)}" data-username="${escapeHtml(c.name || '')}" style="background:#1d9bf0;border-color:#1d9bf0;color:#fff;font-size:0.75rem;padding:0.32rem 0.75rem;display:inline-flex;align-items:center;gap:4px;">
+                        ${ICON.badgeCheck} Beri Centang Biru
                     </button>`
                 }
             </td>
@@ -1435,7 +2048,7 @@ export function bindAdminVerifyActionButtons() {
                 .catch(err => {
                     showToast('Gagal mengubah status verifikasi: ' + err.message, 'error');
                     this.disabled = false;
-                    this.textContent = willVerify ? '⚡ Beri Centang Biru' : '✕ Cabut Centang Biru';
+                    this.innerHTML = willVerify ? `${ICON.badgeCheck} Beri Centang Biru` : `${ICON.close} Cabut Centang Biru`;
                 });
         });
     });
@@ -1664,7 +2277,7 @@ export function openCheckoutModal(template) {
     </div>
     <div style="margin-top:1.2rem;display:flex;gap:0.8rem;">
         <button class="btn btn-secondary" id="cancelCheckoutBtn" style="flex:1;">Batal</button>
-        <button class="btn btn-primary" id="confirmPaymentBtn" style="flex:2;padding:0.75rem;font-weight:700;box-shadow:0 4px 14px rgba(20,184,166,0.3);">⚡ Bayar &amp; Dapatkan Akses (Lunas)</button>
+        <button class="btn btn-primary" id="confirmPaymentBtn" style="flex:2;padding:0.75rem;font-weight:700;box-shadow:0 4px 14px rgba(20,184,166,0.3);">${ICON.bolt || ICON.shield} Bayar &amp; Dapatkan Akses (Lunas)</button>
     </div>`;
 
     modal.classList.add('active');
@@ -1722,7 +2335,7 @@ export function openCheckoutModal(template) {
             if (template.creatorUid) {
                 addNotification({
                     recipientUid: template.creatorUid,
-                    title: 'Penjualan Preset Baru! 🎉',
+                    title: 'Penjualan Preset Baru!',
                     message: orderData.buyerName + ' telah membeli preset "' + template.judul + '" seharga ' + formatRupiah(itemPrice) + '.',
                     type: 'sale',
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1737,7 +2350,7 @@ export function openCheckoutModal(template) {
         }).catch(err => {
             showToast('Gagal memproses transaksi: ' + err.message, 'error');
             this.disabled = false;
-            this.innerHTML = '⚡ Bayar &amp; Dapatkan Akses (Lunas)';
+            this.innerHTML = (ICON.bolt || ICON.shield) + ' Bayar &amp; Dapatkan Akses (Lunas)';
         });
     });
 }
@@ -1760,7 +2373,7 @@ export function openInvoiceModal(order, templateObj) {
             <div style="text-align:right;">
                 <div class="mono" style="font-size:0.85rem;font-weight:700;color:var(--text-primary);">${order.orderNumber || order.id}</div>
                 <div style="font-size:0.75rem;color:var(--text-muted);">${dateStr}</div>
-                <span class="order-status-pill success" style="margin-top:0.3rem;">✓ LUNAS / PAID</span>
+                <span class="order-status-pill success" style="margin-top:0.3rem;display:inline-flex;align-items:center;gap:4px;">${ICON.checkCircle} LUNAS / PAID</span>
             </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:0.82rem;margin-bottom:1.2rem;background:var(--card-bg);padding:0.8rem;border-radius:8px;">
