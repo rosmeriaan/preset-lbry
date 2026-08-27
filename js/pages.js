@@ -788,8 +788,18 @@ export function renderProfileTabContent(myTemplates) {
     if (!container) return;
 
     if (state.currentProfileTab === 'liked') {
-        container.innerHTML = renderAkunLikedTemplates();
-        bindAkunLikedEvents();
+        const liked = (state.allTemplates || []).filter(t => state.likedTemplateIds && state.likedTemplateIds.has(t.id));
+        if (liked.length === 0) {
+            container.innerHTML = `<div class="empty-state" style="padding: 3rem 1rem; text-align:center;">
+                ${ICON.heart}
+                <div class="title" style="font-size:1.15rem;font-weight:700;margin-top:0.5rem;color:var(--text);">Belum ada preset disukai</div>
+                <div class="sub" style="font-size:0.85rem;color:var(--text-muted);margin-top:0.25rem;">Klik ikon hati pada preset yang kamu minati untuk menyimpannya di sini.</div>
+            </div>`;
+        } else {
+            let html = `<div class="result-line">${liked.length} preset disukai</div>`;
+            html += `<div class="grid">${liked.map(renderCard).join('')}</div>`;
+            container.innerHTML = html;
+        }
     } else {
         if (myTemplates.length === 0) {
             container.innerHTML = `<div class="empty-state" style="padding: 2.5rem 0;">
@@ -1008,8 +1018,15 @@ export function renderCreatorDashboardPage() {
     const pendingWithdraw = (state.creatorWithdrawals || []).filter(w => w.status === 'pending').reduce((sum, w) => sum + Number(w.amount || 0), 0);
     const availableBalance = Math.max(0, netRevenue - withdrawn - pendingWithdraw);
 
+    const totalDownloads = myTemplates.reduce((sum, t) => sum + Number(t.uses || 0), 0);
+    const freeTemplates = myTemplates.filter(t => t.license !== 'paid');
+    const paidTemplates = myTemplates.filter(t => t.license === 'paid');
+    const freeDownloads = freeTemplates.reduce((sum, t) => sum + Number(t.uses || 0), 0);
+    const paidDownloads = paidTemplates.reduce((sum, t) => sum + Number(t.uses || 0), 0);
+    const avgDownloads = myTemplates.length > 0 ? Math.round(totalDownloads / myTemplates.length) : 0;
     const totalLikes = myTemplates.reduce((sum, t) => sum + Number(t.likes || 0), 0);
     const totalViews = myTemplates.reduce((sum, t) => sum + Number(t.views || 0), 0);
+    const conversionRate = totalViews > 0 ? ((totalDownloads / totalViews) * 100).toFixed(1) : '0.0';
     const avgOrderVal = mySales.length > 0 ? Math.round(totalGross / mySales.length) : 0;
 
     let html = `<div class="creator-dash-container">
@@ -1042,7 +1059,7 @@ export function renderCreatorDashboardPage() {
             </div>
         </div>
 
-        <!-- 4 EXECUTIVE KPI METRICS -->
+        <!-- 5 EXECUTIVE KPI METRICS -->
         <div class="creator-kpi-grid">
             <div class="creator-kpi-card" style="border-top:3px solid var(--accent);">
                 <div class="creator-kpi-head">
@@ -1075,6 +1092,20 @@ export function renderCreatorDashboardPage() {
 
             <div class="creator-kpi-card">
                 <div class="creator-kpi-head">
+                    <span class="creator-kpi-label">Total Unduhan</span>
+                    <div class="creator-kpi-icon-wrap" style="background:rgba(20,184,166,0.12);color:var(--accent);">
+                        ${ICON.download}
+                    </div>
+                </div>
+                <div class="creator-kpi-val">${formatNumber(totalDownloads)} Unduhan</div>
+                <div class="creator-kpi-footer">
+                    <span>Rata-rata: ${formatNumber(avgDownloads)} / item</span>
+                    <span class="creator-kpi-badge" style="color:var(--accent);background:rgba(20,184,166,0.1);">${ICON.download} ${conversionRate}% Konversi</span>
+                </div>
+            </div>
+
+            <div class="creator-kpi-card">
+                <div class="creator-kpi-head">
                     <span class="creator-kpi-label">Preset Terjual</span>
                     <div class="creator-kpi-icon-wrap" style="background:rgba(59,130,246,0.12);color:#3b82f6;">
                         ${ICON.shoppingBag}
@@ -1083,7 +1114,7 @@ export function renderCreatorDashboardPage() {
                 <div class="creator-kpi-val">${mySales.length} Transaksi</div>
                 <div class="creator-kpi-footer">
                     <span>Rata-rata: ${formatRupiah(avgOrderVal)}</span>
-                    <span style="font-size:0.7rem;color:var(--text-muted);">${myTemplates.length} Preset</span>
+                    <span style="font-size:0.7rem;color:var(--text-muted);">${paidTemplates.length} Berbayar</span>
                 </div>
             </div>
 
@@ -1094,10 +1125,10 @@ export function renderCreatorDashboardPage() {
                         ${ICON.activity || ICON.sparkle}
                     </div>
                 </div>
-                <div class="creator-kpi-val">${formatNumber(totalLikes)} Disukai</div>
+                <div class="creator-kpi-val">${formatNumber(totalViews)} Dilihat</div>
                 <div class="creator-kpi-footer">
-                    <span>${formatNumber(totalViews)} Dilihat Pembeli</span>
-                    <span class="creator-kpi-badge" style="color:#d97706;background:rgba(245,158,11,0.1);">${ICON.heart} Engagement</span>
+                    <span>${formatNumber(totalLikes)} Disukai</span>
+                    <span class="creator-kpi-badge" style="color:#d97706;background:rgba(245,158,11,0.1);">${ICON.heart} Interaksi</span>
                 </div>
             </div>
         </div>
@@ -1127,7 +1158,12 @@ export function renderCreatorDashboardPage() {
                 withdrawn,
                 pendingWithdraw,
                 netRevenue,
-                totalGross
+                totalGross,
+                totalDownloads,
+                freeDownloads,
+                paidDownloads,
+                avgDownloads,
+                conversionRate
             })}
         </div>
     </div>`;
@@ -1150,7 +1186,7 @@ function renderCreatorTabContent(tab, data) {
 
 // ===== TAB 1: OVERVIEW & ANALYTICS =====
 function renderCreatorOverviewTabHtml(data) {
-    const { mySales, myTemplates } = data;
+    const { mySales, myTemplates, totalDownloads, freeDownloads, paidDownloads, avgDownloads, conversionRate } = data;
 
     // Calculate last 7 days revenue for chart
     const dayNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
@@ -1202,7 +1238,10 @@ function renderCreatorOverviewTabHtml(data) {
         presetSalesMap[key].revenue += Math.floor(Number(s.itemPrice || 0) * 0.9);
     });
 
-    const topPresets = Object.values(presetSalesMap).sort((a, b) => b.revenue - a.revenue).slice(0, 4);
+    const topSalesPresets = Object.values(presetSalesMap).sort((a, b) => b.revenue - a.revenue).slice(0, 4);
+
+    // Top Downloaded Presets (Paling Sering Diunduh)
+    const topDownloadedPresets = (myTemplates || []).slice().sort((a, b) => (b.uses || 0) - (a.uses || 0)).slice(0, 4);
 
     return `<div class="creator-analytics-grid">
         <!-- 7-DAY REVENUE BAR CHART -->
@@ -1237,12 +1276,12 @@ function renderCreatorOverviewTabHtml(data) {
             </div>
 
             <div class="creator-leaderboard-list">
-                ${topPresets.length === 0 ? `
+                ${topSalesPresets.length === 0 ? `
                     <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.84rem;">
                         ${ICON.shoppingBag}
                         <p style="margin-top:0.5rem;">Belum ada data penjualan preset berbayar.</p>
                     </div>
-                ` : topPresets.map((p, idx) => `
+                ` : topSalesPresets.map((p, idx) => `
                     <div class="creator-leaderboard-item">
                         <div class="creator-lb-left">
                             <span class="creator-lb-rank">#${idx + 1}</span>
@@ -1259,6 +1298,88 @@ function renderCreatorOverviewTabHtml(data) {
                     </div>
                 `).join('')}
             </div>
+        </div>
+    </div>
+
+    <!-- DOWNLOAD ANALYTICS & TOP DOWNLOADED PRESETS -->
+    <div class="creator-content-card" style="margin-top:1.25rem;">
+        <div class="creator-card-header">
+            <div>
+                <h3 style="display:flex;align-items:center;gap:0.4rem;">
+                    ${ICON.download} Statistik &amp; Peringkat Unduhan Preset
+                </h3>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                    Analisis performa unduhan dari seluruh preset gratis dan premium yang Anda publikasikan
+                </div>
+            </div>
+            <span class="status-chip success" style="font-size:0.75rem;display:inline-flex;align-items:center;gap:4px;">
+                ${ICON.download} ${formatNumber(totalDownloads || 0)} Total Unduhan
+            </span>
+        </div>
+
+        <!-- DOWNLOAD RECAP METRIC STRIP -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.8rem;margin-bottom:1.2rem;">
+            <div style="background:var(--bg-alt);padding:0.9rem;border-radius:10px;border:1px solid var(--border-color);">
+                <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Unduhan Preset Gratis</div>
+                <div style="font-size:1.2rem;font-weight:800;color:var(--accent);margin-top:0.2rem;">${formatNumber(freeDownloads || 0)} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">kali</span></div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">Dari ${myTemplates.filter(t => t.license !== 'paid').length} item gratis</div>
+            </div>
+            <div style="background:var(--bg-alt);padding:0.9rem;border-radius:10px;border:1px solid var(--border-color);">
+                <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Unduhan Preset Berbayar</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#3b82f6;margin-top:0.2rem;">${formatNumber(paidDownloads || 0)} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">kali</span></div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">${mySales.length} transaksi pembeli</div>
+            </div>
+            <div style="background:var(--bg-alt);padding:0.9rem;border-radius:10px;border:1px solid var(--border-color);">
+                <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Rata-rata per Preset</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#f59e0b;margin-top:0.2rem;">${formatNumber(avgDownloads || 0)} <span style="font-size:0.75rem;font-weight:500;color:var(--text-muted);">unduh/item</span></div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">Distribusi unduhan rata-rata</div>
+            </div>
+            <div style="background:var(--bg-alt);padding:0.9rem;border-radius:10px;border:1px solid var(--border-color);">
+                <div style="font-size:0.75rem;color:var(--text-muted);font-weight:600;">Rasio Konversi Unduhan</div>
+                <div style="font-size:1.2rem;font-weight:800;color:#10b981;margin-top:0.2rem;">${conversionRate || '0.0'}%</div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.2rem;">Rasio unduh per total view</div>
+            </div>
+        </div>
+
+        <!-- TOP DOWNLOADED PRESETS LIST -->
+        <div style="font-size:0.84rem;font-weight:700;margin-bottom:0.75rem;color:var(--text-main);display:flex;align-items:center;gap:0.4rem;">
+            ${ICON.trendingUp} Preset Paling Sering Diunduh Pengguna:
+        </div>
+        <div class="creator-leaderboard-list">
+            ${topDownloadedPresets.length === 0 ? `
+                <div style="text-align:center;padding:2rem 1rem;color:var(--text-muted);font-size:0.84rem;">
+                    ${ICON.download}
+                    <p style="margin-top:0.5rem;">Belum ada data unduhan preset.</p>
+                </div>
+            ` : topDownloadedPresets.map((p, idx) => {
+                const ytId = getYoutubeId(p.linkYoutube);
+                const thumb = ytId ? thumbYoutube(ytId) : '';
+                const isPaid = p.license === 'paid';
+                return `<div class="creator-leaderboard-item">
+                    <div class="creator-lb-left">
+                        <span class="creator-lb-rank" style="background:${idx === 0 ? 'rgba(20,184,166,0.15)' : 'var(--bg-alt)'};color:${idx === 0 ? 'var(--accent)' : 'var(--text-muted)'};">#${idx + 1}</span>
+                        ${thumb ? `<img src="${thumb}" class="creator-lb-thumb" alt="${escapeHtml(p.judul)}" />` : `<div class="creator-lb-thumb" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);">${ICON.image}</div>`}
+                        <div class="creator-lb-info">
+                            <span class="creator-lb-title">${escapeHtml(p.judul || 'Tanpa Judul')}</span>
+                            <div class="creator-lb-sub" style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+                                <span>${escapeHtml(p.kategori || 'Preset')}</span>
+                                <span>&bull;</span>
+                                <span class="status-chip ${isPaid ? 'pending' : 'success'}" style="font-size:0.65rem;padding:1px 5px;">
+                                    ${isPaid ? `${ICON.coin} ${formatRupiah(p.harga)}` : 'Gratis'}
+                                </span>
+                                <span>&bull;</span>
+                                <span>${p.views || 0} ${ICON.eye}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="creator-lb-revenue" style="text-align:right;">
+                        <div class="creator-lb-amount" style="color:var(--accent);display:flex;align-items:center;justify-content:flex-end;gap:4px;">
+                            ${ICON.download} ${formatNumber(p.uses || 0)}
+                        </div>
+                        <div class="creator-lb-count">Total Unduhan</div>
+                    </div>
+                </div>`;
+            }).join('')}
         </div>
     </div>
 
@@ -1473,6 +1594,7 @@ function renderCreatorPresetsTabHtml(templates) {
                             <span class="status-chip ${isPaid ? 'pending' : 'success'}" style="font-size:0.68rem;padding:1px 6px;">
                                 ${isPaid ? `${ICON.coin} ${formatRupiah(t.harga)}` : 'Gratis'}
                             </span>
+                            <span title="Total Unduhan" style="color:var(--accent);font-weight:600;">${ICON.download} ${formatNumber(t.uses || 0)} unduhan</span>
                             <span>${t.likes || 0} ${ICON.heart}</span>
                             <span>${t.views || 0} ${ICON.eye}</span>
                         </div>
@@ -2175,29 +2297,23 @@ export function bindAkunProfileEvents() {
 export function renderAkunLikedTemplates() {
     const liked = (state.allTemplates || []).filter(t => state.likedTemplateIds && state.likedTemplateIds.has(t.id));
     if (liked.length === 0) {
-        return `<div class="empty-state" style="padding:1.5rem 0;">
+        return `<div class="empty-state" style="padding:2.5rem 1rem;text-align:center;">
             ${ICON.heart}
-            <div class="title">Belum ada yang disukai</div>
-            <div class="sub">Like template yang kamu suka untuk menyimpannya di sini.</div>
+            <div class="title" style="font-size:1.1rem;font-weight:700;margin-top:0.5rem;color:var(--text);">Belum ada yang disukai</div>
+            <div class="sub" style="font-size:0.82rem;color:var(--text-muted);margin-top:0.25rem;">Like template yang kamu suka untuk menyimpannya di sini.</div>
         </div>`;
     }
     let html = `<div class="result-line">${liked.length} template disukai</div>`;
-    html += '<div class="liked-mini-grid">';
-    liked.forEach(t => {
-        const ytId = t.linkYoutube ? getYoutubeId(t.linkYoutube) : null;
-        const imgSrc = ytId ? thumbYoutube(ytId) : '';
-        html += `<div class="liked-mini-card" data-id="${t.id}" data-creator="${escapeHtml(t.creator || '')}" data-kode="${escapeHtml(t.kode || '')}">
-            <div class="mini-thumb">${imgSrc ? `<img src="${imgSrc}" alt="" loading="lazy">` : ICON.noVideo}</div>
-            <div class="mini-info">${escapeHtml(t.judul || 'Tanpa judul')}</div>
-        </div>`;
-    });
-    html += '</div>';
+    html += `<div class="grid">${liked.map(renderCard).join('')}</div>`;
     return html;
 }
 
 export function bindAkunLikedEvents() {
-    document.querySelectorAll('.liked-mini-card').forEach(card => {
-        card.addEventListener('click', function() {
+    const tabLiked = document.getElementById('tabLikedContent');
+    const targetEl = tabLiked || document.getElementById('profileTabContent') || document;
+    targetEl.querySelectorAll('.card, .liked-mini-card').forEach(card => {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('.card-quick-code')) return;
             const t = state.allTemplates.find(tm => tm.id === this.dataset.id);
             if (!t) return;
             const akunModal = document.getElementById('akunModal');

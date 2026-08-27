@@ -4382,8 +4382,13 @@
 
         .creator-kpi-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 1rem;
+        }
+        @media (min-width: 1200px) {
+            .creator-kpi-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
         }
         @media (max-width: 992px) {
             .creator-kpi-grid {
